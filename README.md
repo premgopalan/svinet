@@ -161,7 +161,7 @@ output directory.
 Output files
 ------------
 
-- For each inference run a directory is created, e.g., 
+- Each inference run writes output files to a directory. The directory name depends on the input options. See examples below.
 
   n17903-k20-mmsb-linksampling (link sampling)
   n17903-k20-mmsb-rnode        (random node sampling)
