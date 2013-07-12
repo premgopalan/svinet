@@ -195,7 +195,7 @@ Output files
 		     the columns in between are the expected
 		     membership probabilities
 
-- communities.txt : Each node is bucketed into a "link community"
+- communities.txt : This is the community assignment file. Each node is bucketed into a "link community"
   		    based on whether it exhibited at least one link
   		    that belongs to that community.
 
