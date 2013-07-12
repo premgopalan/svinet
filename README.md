@@ -75,32 +75,34 @@ graph will be treated as undirected.
 Inference
 ---------
 
-help:
-svinet -help
+See svinet -help.
 
 *RECOMMENDED*
+
 link sampling inference:
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling
 
 *OTHER OPTIONS*
-batch inference:
+
+*batch inference*
+
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -batch
 
-inference with random pair sampling:
+*inference with random pair sampling*
+
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -rpair
 
-inference with random node sampling:
+*inference with random node sampling*
+
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -rnode
 
-inference with stratified random pair sampling:
+*inference with stratified random pair sampling*
+
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -rpair -stratified
 
-inference with stratified random node sampling:
+*inference with stratified random node sampling*
+
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -rnode -stratified
-
-For other useful options, run
-
-   svinet -help
 
 Preprocessing for the informative set sampling option
 -----------------------------------------------------
