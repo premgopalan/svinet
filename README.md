@@ -1,7 +1,7 @@
-INSTALLATION
-============
+Installation
+------------
 
-See file INSTALL for further details.
+See file INSTALL for complete details.
 
 On Linux/Unix run
 
@@ -63,8 +63,8 @@ SVINET: fast stochastic variational inference of undirected networks
 
 
 
-INPUT FILE FORMAT FOR UNDIRECTED GRAPHS
-=======================================
+Input file format for undirected graphs
+---------------------------------------
 
 See the example included file ./example/assort-75-4.txt.
 
@@ -72,8 +72,8 @@ Each line contains a tab-separated pair of node IDs corresponding to a
 link. The file can contain duplicate links or directed links, but the
 graph will be treated as undirected.
 
-INFERENCE
-=========
+Inference
+---------
 
 help:
 svinet -help
@@ -103,7 +103,7 @@ For other useful options, run
    svinet -help
 
 Preprocessing for the informative set sampling option
-=====================================================
+-----------------------------------------------------
 
 This sampling option is meant to be used on large, sparse networks.
 
@@ -120,8 +120,8 @@ mv n17903-k20-mmsb-massive/neighbors.bin .
 
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -massive
 
-SAVING MODEL STATE
-==================
+Saving model state
+------------------
 
 At any point during inference you can send a signal to the running
 svinet process to save results including the model state and
@@ -135,8 +135,8 @@ kill -TERM <process ID>
 The results are also saved when the inference converges and the
 process terminates.
 
-STOPPING CRITERIA 
-=================
+Stopping criteria 
+-----------------
 
 The avg. heldout log likelihood at network sparsity is used to assess
 convergence. (Details in the paper.)
@@ -147,8 +147,8 @@ default settings are set as a function of the network size.
 For help with adjusting the stopping criteria please contact the
 authors.
 
-PARAMETERS
-==========
+Parameters
+----------
 
 If parameters or options cannot be set through the documented command
 line options, you may be able to set them in env.hh. In this case,
@@ -157,8 +157,8 @@ recompile to create a new svinet binary.
 Most parameters used in inference are written to param.txt in the
 output directory.
 
-OUTPUT FILES
-============
+Output files
+------------
 
 - For each inference run a directory is created, e.g., 
 
@@ -206,8 +206,8 @@ OUTPUT FILES
 - lambda.txt: inferred posterior community strengths (Beta parameters)
 
 
-VISUALIZE LINK COMMUNITIES
-==========================
+Visualize link communities
+--------------------------
 
 After the model has been saved, i.e., gamma.txt and lambda.txt exist,
 run the following command to visualize the link communities.
