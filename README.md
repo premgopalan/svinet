@@ -163,12 +163,12 @@ Output files
 
 - Each inference run writes output files to a directory. The directory name depends on the input options. See examples below.
 
-  n17903-k20-mmsb-linksampling (link sampling)
-  n17903-k20-mmsb-rnode        (random node sampling)
-  n17903-k20-mmsb-Srnode       (stratified random node sampling)
-  n17903-k20-mmsb-rpair        (random pair sampling)
-  n17903-k20-mmsb-Srpair       (stratified random pair sampling)
-  n17903-k20-mmsb-infset       (informative set sampling)
+  - n17903-k20-mmsb-linksampling (link sampling)
+  - n17903-k20-mmsb-rnode        (random node sampling)
+  - n17903-k20-mmsb-Srnode       (stratified random node sampling)
+  - n17903-k20-mmsb-rpair        (random pair sampling)
+  - n17903-k20-mmsb-Srpair       (stratified random pair sampling)
+  - n17903-k20-mmsb-infset       (informative set sampling)
 
 - The files heldout.txt and validation.txt in the directory contain
   the heldout log likelihood on heldout sets.
