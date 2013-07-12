@@ -175,17 +175,17 @@ Output files
 
   The columns are as follows: 
 
-  iteration #, 
-  cum. duration (secs), 
-  avg. heldout log likelihood
-  # samples
-  avg. heldout log likelihood (link)
-  # link samples
-  avg. heldout log likelihood (non link)
-  # nonlink samples
-  avg. heldout log likelihood (link) at network sparsity
-  avg. heldout log likelihood (nonlink) at network sparsity
-  avg. heldout log likelihood at network sparsity 
+     iteration #, 
+     cum. duration (secs), 
+     avg. heldout log likelihood
+     # samples
+     avg. heldout log likelihood (link)
+     # link samples
+     avg. heldout log likelihood (non link)
+     # nonlink samples
+     avg. heldout log likelihood (link) at network sparsity
+     avg. heldout log likelihood (nonlink) at network sparsity
+     avg. heldout log likelihood at network sparsity 
 
   See the paper for how we compute log likelihood at network sparsity.
 
