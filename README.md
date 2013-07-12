@@ -42,8 +42,8 @@ SVINET: fast stochastic variational inference of undirected networks
 
         -label          tag output directory
 
-        -link-sampling  inference using link sampling 
-			*recommended*
+        *-link-sampling  inference using link sampling*
+			**recommended**
 
         -infset         inference using informative set sampling
 
