@@ -109,16 +109,15 @@ Preprocessing for the informative set sampling option
 
 This sampling option is meant to be used on large, sparse networks.
 
-1. preprocess the network
+- *preprocess the network*
 
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -preprocess
 
-2. move the generated "informative set" file to the location where you
-   will run svinet
+- *move the generated "informative set" file to the location where you will run svinet*
 
 mv n17903-k20-mmsb-massive/neighbors.bin .
 
-3. run inference
+- *run inference*
 
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -massive
 
