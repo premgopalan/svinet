@@ -34,7 +34,7 @@ SVINET: fast stochastic variational inference of undirected networks
         -batch          run batch variational inference
 
         -stratified     use stratified sampling
-         * use with rpair or rnode options
+                        (use with rpair or rnode options only)
 
         -rnode          inference using random node sampling
 
