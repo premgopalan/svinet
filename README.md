@@ -103,6 +103,18 @@ svinet -file ca-AstroPh.csv -n 17903 -k 20 -rpair -stratified
 
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -rnode -stratified
 
+
+Recommended for comparisons to competing algorithms
+----------------------------------------------------
+
+I suggest using the communities.txt files obtained by running svinet with two settings of the **link threshold** as follows:
+
+     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.5
+
+     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.9
+
+For further details on this, please email the authors.
+
 Preprocessing for the informative set sampling option
 -----------------------------------------------------
 
