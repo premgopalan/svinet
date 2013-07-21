@@ -924,8 +924,6 @@ LinkSampling::log_communities()
 	    Env::file_str("/mutual.txt").c_str());
     if (system(cmd) < 0)
       lerr("error spawning cmd %s:%s", cmd, strerror(errno));
-    lerr("done logging communities");
-    lerr("spawned command %s\n", cmd);
   }
 }
 

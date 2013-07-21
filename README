@@ -60,6 +60,10 @@ SVINET: fast stochastic variational inference of undirected networks
 
         -gml            generate a GML format file that visualizes link communities
 
+        -nmi <community-file-name> read a community assignment file and report mutual information scores 
+                        the binary 'mutual' must be in /usr/local/bin/mutual
+                        Get the Lancichinetti et al. code from here: 
+	                https://sites.google.com/site/santofortunato/mutual3.tar.gz
 
 
 Input file format for undirected graphs
@@ -70,6 +74,18 @@ See the example included file ./example/assort-75-4.txt.
 Each line contains a tab-separated pair of node IDs corresponding to a
 link. The file can contain duplicate links or directed links, but the
 graph will be treated as undirected.
+
+
+Recommended for comparisons to competing algorithms
+----------------------------------------------------
+
+I suggest using the communities.txt files obtained by running svinet with two settings of the **link threshold** as follows:
+
+     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.5
+
+     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.9
+
+For further details on this, please email the authors.
 
 Inference
 ---------
@@ -102,18 +118,6 @@ svinet -file ca-AstroPh.csv -n 17903 -k 20 -rpair -stratified
 *inference with stratified random node sampling*
 
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -rnode -stratified
-
-
-Recommended for comparisons to competing algorithms
-----------------------------------------------------
-
-I suggest using the communities.txt files obtained by running svinet with two settings of the **link threshold** as follows:
-
-     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.5
-
-     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.9
-
-For further details on this, please email the authors.
 
 Preprocessing for the informative set sampling option
 -----------------------------------------------------
