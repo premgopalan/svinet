@@ -54,7 +54,8 @@ public:
   Env(uint32_t N, uint32_t K, bool massive,
       bool sbm, bool batch, bool strat, bool nodelay,
       bool rpair, bool rnode, bool load, string location, 
-      bool hol_load, string hol_location, double hol_ratio,
+      bool hol_load, string hol_location, bool load_test_sets,
+      double hol_ratio,
       bool adamic,
       uint32_t scale,
       bool dis, bool force_overwrite_dir, string dfname,
@@ -96,6 +97,8 @@ public:
   string gamma_location;
   bool load_heldout;
   string load_heldout_fname;
+  bool create_test_precision_sets;
+  bool load_test_sets;
   bool adamic_adar;
   uint32_t subsample_scale;
 
@@ -277,7 +280,8 @@ inline
 Env::Env(uint32_t N, uint32_t K, bool massive,
 	 bool sbm, bool batch, bool strat, bool nodelay,
 	 bool rpair, bool rnode, bool load, string location, 
-	 bool hol_load, string hol_location, double hol_ratio,
+	 bool hol_load, string hol_location, 
+	 bool load_test_sets_opt, double hol_ratio,
 	 bool adamic,
 	 uint32_t scale,
 	 bool dis, bool force_overwrite_dir, string dfname,
@@ -339,6 +343,8 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     gamma_location(location),
     load_heldout(hol_load),
     load_heldout_fname(hol_location),
+    create_test_precision_sets(false),
+    load_test_sets(load_test_sets_opt),
     adamic_adar(adamic),
     subsample_scale(scale),
 
@@ -611,6 +617,9 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     plog("epsilon", epsilon);
     plog("sets_mini_batch", sets_mini_batch);
     plog("use_init_communities", use_init_communities);
+    plog("load_test_sets", load_test_sets);
+    plog("hol_load", hol_load);
+    plog("hol_location", hol_location);
   }
 
   if (!gen && !ppc) {

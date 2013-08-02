@@ -97,10 +97,13 @@ main(int argc, char **argv)
   double rand_seed = 0;
 
   double hol_ratio = 0.01;
+  bool load_test_sets_opt = false;
   double link_thresh = 0.5;
   uint32_t lt_min_deg = 0;
   bool init_comm = false;
   string init_comm_fname = "";
+
+  bool load_heldout_sets = false;
 
   if (argc == 1) {
     usage();
@@ -218,6 +221,8 @@ main(int argc, char **argv)
       rand_seed = atof(argv[++i]);
     } else if (strcmp(argv[i], "-heldout-ratio") == 0) {
       hol_ratio = atof(argv[++i]);
+    } else if (strcmp(argv[i], "-load-test-sets") == 0) {
+      load_test_sets_opt = true;
     } else if (strcmp(argv[i], "-link-thresh") == 0) {
       link_thresh = atof(argv[++i]);
     } else if (strcmp(argv[i], "-lt-min-deg") == 0) {
@@ -237,7 +242,8 @@ main(int argc, char **argv)
   Env env(n, k, massive, single, batch, stratified, 
 	  nodelay, rpair, rnode, 
 	  load, location, 
-	  hol_load, hol_location, hol_ratio,
+	  hol_load, hol_location, load_test_sets_opt,
+	  hol_ratio,
 	  adamic_adar,
 	  scale, disjoint,
 	  force_overwrite_dir, datfname, 

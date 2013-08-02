@@ -32,6 +32,7 @@ public:
 private:
   void init_heldout();
   void load_heldout();
+
   void set_heldout_sample(int s1);
   void set_precision_biased_sample(int s1);
   void set_precision_uniform_sample(int s1);
@@ -56,8 +57,11 @@ private:
   void validation_likelihood(double &a, double &a0, double &a1) const;
 
   int load_model();
+  void load_test_sets();
   void get_random_edge(bool link, Edge &e) const;
   void do_on_stop();
+  void compute_test_likelihood();
+  void test_likelihood(const SampleMap &m, FILE *outf);
 
   void init_gamma();
   void init_gamma2();
@@ -88,6 +92,8 @@ private:
   SampleMap _precision_map;
   SampleMap _validation_map;
   SampleMap _training_map;
+  SampleMap _uniform_map;
+  SampleMap _biased_map;
 
   MapVec _communities;
   uint32_t _n;
@@ -105,6 +111,8 @@ private:
   EdgeList _precision_pairs;
   EdgeList _validation_pairs;
   EdgeList _training_pairs;
+  EdgeList _uniform_pairs;
+  EdgeList _biased_pairs;
   gsl_rng *_r;
 
   Matrix _gamma;
@@ -296,16 +304,27 @@ LinkSampling::edge_ok(const Edge &e) const
   const SampleMap::const_iterator u = _heldout_map.find(e);
   if (u != _heldout_map.end())
     return false;
-
+  
   if (!_env.single_heldout_set) {
     const SampleMap::const_iterator w = _validation_map.find(e);
     if (w != _validation_map.end())
       return false;
   }
 
-  const SampleMap::const_iterator w = _precision_map.find(e);
-  if (w != _precision_map.end()) 
-    return false;
+  if (_env.create_test_precision_sets) {
+    const SampleMap::const_iterator w = _precision_map.find(e);
+    if (w != _precision_map.end()) 
+      return false;
+  }
+
+  if (_env.load_test_sets) {
+    const SampleMap::const_iterator u1 = _uniform_map.find(e);
+    if (u1 != _uniform_map.end()) 
+      return false;    
+    const SampleMap::const_iterator b1 = _biased_map.find(e);
+    if (b1 != _biased_map.end()) 
+      return false;    
+  }
 
   return true;
 }
