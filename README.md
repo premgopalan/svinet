@@ -1,3 +1,14 @@
+References
+----------
+
+Prem K. Gopalan, David M. Blei. Efficient discovery of overlapping communities 
+in massive networks. To appear in the Proceedings of the National Academy of 
+Sciences, 2013 (published ahead of print August 15, 2013, doi:10.1073/pnas.1221839110).
+
+Article: http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf
+SI: http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental
+
+
 Installation
 ------------
 
@@ -5,7 +16,7 @@ See file INSTALL for complete details.
 
 On Linux/Unix run
 
- ./configure 
+ ./configure
  make; make install
 
 On Mac OS, the required gsl, gslblas and pthread libraries may be in a
@@ -60,9 +71,9 @@ SVINET: fast stochastic variational inference of undirected networks
 
         -gml            generate a GML format file that visualizes link communities
 
-        -nmi <community-file-name> read a community assignment file and report mutual information scores 
+        -nmi <community-file-name> read a community assignment file and report mutual information scores
                         the binary 'mutual' must be in /usr/local/bin/mutual
-                        Get the Lancichinetti et al. code from here: 
+                        Get the Lancichinetti et al. code from here:
 	                https://sites.google.com/site/santofortunato/mutual3.tar.gz
 
 
@@ -141,7 +152,7 @@ Saving model state
 
 At any point during inference you can send a signal to the running
 svinet process to save results including the model state and
-discovered groups. The signal is sent as follows. 
+discovered groups. The signal is sent as follows.
 
 Find the process ID using the command "ps -ax | grep svinet" (on unix
 systems). Then,
@@ -151,14 +162,14 @@ kill -TERM <process ID>
 The results are also saved when the inference converges and the
 process terminates.
 
-Stopping criteria 
+Stopping criteria
 -----------------
 
 The avg. heldout log likelihood at network sparsity is used to assess
 convergence. (Details in the paper.)
 
 The stopping criteria may need to be adjusted for best results. The
-default settings are set as a function of the network size. 
+default settings are set as a function of the network size.
 
 For help with adjusting the stopping criteria please contact the
 authors.
@@ -168,7 +179,7 @@ Parameters
 
 If parameters or options cannot be set through the documented command
 line options, you may be able to set them in env.hh. In this case,
-recompile to create a new svinet binary. 
+recompile to create a new svinet binary.
 
 Most parameters used in inference are written to param.txt in the
 output directory.
@@ -188,19 +199,19 @@ Output files
 - The files heldout.txt and validation.txt in the directory contain
   the heldout log likelihood on heldout sets.
 
-  The columns are as follows: 
+  The columns are as follows:
 
-     iteration # | 
+     iteration # |
      cum. duration (secs) |
      avg. heldout log likelihood |
-     # samples | 
+     # samples |
      avg. heldout log likelihood (link) |
-     # link samples | 
+     # link samples |
      avg. heldout log likelihood (non link) |
-     # nonlink samples | 
-     avg. heldout log likelihood (link) at network sparsity | 
+     # nonlink samples |
+     avg. heldout log likelihood (link) at network sparsity |
      avg. heldout log likelihood (nonlink) at network sparsity |
-     avg. heldout log likelihood at network sparsity 
+     avg. heldout log likelihood at network sparsity
 
   See the paper for how we compute log likelihood at network sparsity.
 
@@ -215,7 +226,7 @@ Output files
   		    based on whether it exhibited at least one link
   		    that belongs to that community.
 
-		    
+
 - gamma.txt: posterior variational mixed-membership parameter
   	     (Dirichlet parameters)
 
@@ -230,7 +241,7 @@ run the following command to visualize the link communities.
 
 svinet -file ca-AstroPh.csv -n 17903 -k 20 -gml
 
-The output file is written to network.gml. 
+The output file is written to network.gml.
 
 Load the file in Gephi to visualize it. Use each node's "group" member
 and each edge's "color" member for "partitioning".  Use the bridgeness
