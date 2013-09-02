@@ -48,7 +48,7 @@ Step 2 writes out the communities in communities.txt, the model fit in
 gamma.txt and lambda.txt and the mixed-memberships in groups.txt.
 
 Step 3 writes out a GML file (network.gml) that can be loaded into a
-tool such as Gephi, to visualize the communities. Note that each node
+tool, such as Gephi, to visualize the communities. Note that each node
 is colored by its most likely community in the visualization.
 
 Some advanced tips
