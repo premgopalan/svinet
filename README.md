@@ -38,7 +38,7 @@ Tutorial
 
 3. Run the following command to visualize the communities:
    
-     cd <output-dir>; svinet -file ../network.txt  -n 10000 -k 75 -gml
+     cd output-dir; svinet -file ../network.txt  -n 10000 -k 75 -gml
 
 In step 2, "-n" specifies the number of nodes, "-k" specifies the
 number of communities and "-link-sampling" specifies the sampling
