@@ -88,7 +88,7 @@ Some advanced tips
 
 3. *Comparing communities to results from other methods*
 
-   The authors recommend running svinet with two settings of the
+   We recommend running svinet with two settings of the
    **link threshold** as follows:
 
      svinet -file network.txt -n 10000 -k 75 -link-sampling -link-thresh 0.5
