@@ -73,7 +73,7 @@ MMSBGen::gen(double alpha)
 int
 MMSBGen::load_model()
 {
-  fprintf(stderr, "+ loading gamma\n");
+  fprintf(stderr, "+ Loading model\n");
   double **gd = _gamma.data();
   FILE *gammaf = fopen("gamma.txt", "r");
   if (!gammaf)
@@ -111,7 +111,6 @@ MMSBGen::load_model()
   fclose(gammaf);
   memset(line, 0, sz);
 
-  fprintf(stderr, "+ loading lambda\n");
   double **ld = _lambda.data();
   FILE *lambdaf = fopen("lambda.txt", "r");
   if (!lambdaf)
@@ -185,9 +184,9 @@ MMSBGen::get_lc_stats()
   //save_model();
   estimate_all();
   lc_current_draw2();
-  printf("+ processing link communities\n");
+  printf("+ Computing link communities\n");
   process_link_communities2();
-  printf("+ computing bridgeness\n");
+  printf("+ Computing bridgeness and influence\n");
   bridgeness();
   //compute_modularity();
   community_degrees();
@@ -232,10 +231,8 @@ MMSBGen::bridgeness()
 {
   Array b(_n);
   const double ** const pid = _pi.const_data();
-  FILE *f = fopen("obs_bridgeness.txt", "w");
+  FILE *f = fopen(Env::file_str("/node_bridgeness.txt").c_str(), "w");
   for (uint32_t i = 0; i < _n; ++i) {
-    if (i % 1000 == 0)
-      printf("%d nodes done\n", i);
     double v = .0;
     for (uint32_t k = 0; k < _k; ++k)
       v += (pid[i][k] - ((double)1.0 / _k))*(pid[i][k] - ((double)1.0 / _k));
@@ -263,8 +260,8 @@ MMSBGen::bridgeness()
 void
 MMSBGen::community_degrees()
 {
-  FILE *f = fopen("obs_influence.txt", "w");
-  FILE *g = fopen("memberships2.txt", "w");
+  FILE *f = fopen(Env::file_str("/node_influence.txt").c_str(), "w");
+  FILE *g = fopen(Env::file_str("/number_of_memberships.txt").c_str(), "w");
   for (uint32_t i = 0; i < _n; ++i) {
     const IDMap &m = _network.seq2id();
     IDMap::const_iterator idt = m.find(i);
@@ -417,7 +414,6 @@ MMSBGen::lc_current_draw()
   lc_current_draw_helper(false);
 }
 
-
 void
 MMSBGen::lc_current_draw2()
 {
@@ -425,10 +421,8 @@ MMSBGen::lc_current_draw2()
   MMSBInfer::set_dir_exp(_lambda, _Elogbeta);
   _Elogf.zero();
   _obs_link_communities.clear();
-
   lc_current_draw_helper(true);
 }
-
 
 void
 MMSBGen::lc_current_draw_helper(bool obs)
@@ -438,9 +432,6 @@ MMSBGen::lc_current_draw_helper(bool obs)
   //yval_t **gen_yd = _gen_y.data();
   uint32_t unlikely = 0, bad = 0;
   for (uint32_t i = 0; i < _n; ++i) {
-    if (i % 1000 == 0)
-      printf("%d nodes done\n", i);
-      
     const vector<uint32_t> *edges = _network.get_edges(i);
     for (uint32_t m = 0; m < edges->size(); ++m) {
       uint32_t j = (*edges)[m];
@@ -471,9 +462,9 @@ MMSBGen::lc_current_draw_helper(bool obs)
     }
   }
   if (obs)
-    printf("obs unlikely:%d, bad:%d\n", unlikely, bad);
+    info("obs unlikely:%d, bad:%d\n", unlikely, bad);
   else
-    printf("ppc unlikely:%d, bad:%d\n", unlikely, bad);
+    info("ppc unlikely:%d, bad:%d\n", unlikely, bad);
 }
 
 void
@@ -492,7 +483,7 @@ MMSBGen::process_link_communities2()
     }
   }
   // most influential node in community k
-  FILE *f = fopen("obs_stats.txt", "w");
+  FILE *f = fopen(Env::file_str("/community_stats.txt").c_str(), "w");
   for (uint32_t k =0; k < _k; ++k) {
     double avg = 0 , max = 0;
     uint32_t node = 0;
@@ -734,7 +725,6 @@ MMSBGen::estimate_all()
 
   for (uint32_t k = 0; k < _k; ++k)
     _beta[k] = estimate_bernoulli_rate(k);
-  printf("estimated beta = %s\n", _beta.s().c_str());
 }
 
 void
@@ -921,7 +911,7 @@ void
 MMSBGen::gml()
 {
   get_lc_stats();
-  FILE *f = fopen("network.gml", "w");
+  FILE *f = fopen(Env::file_str("/network.gml").c_str(), "w");
   fprintf(f, "graph\n[\n\tdirected 0\n");
   for (uint32_t i = 0; i < _n; ++i) {
     uint32_t g = most_likely_group(i);
@@ -964,5 +954,9 @@ MMSBGen::gml()
       }
     }
   }
+  fprintf(f, "]\n");
+  fclose(f);
+  printf("+ Done writing GML file. Visualize the communities using a tool such as Gephi.\n");
+  fflush(stdout);
 }
 

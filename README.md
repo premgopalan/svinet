@@ -8,20 +8,18 @@ Sciences, 2013 (published ahead of print August 15, 2013, doi:10.1073/pnas.12218
 Article: http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf
 SI: http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental
 
-
 Installation
 ------------
 
-See file INSTALL for complete details.
+Required libraries: gsl, gslblas, pthread
 
 On Linux/Unix run
 
  ./configure
  make; make install
 
-On Mac OS, the required gsl, gslblas and pthread libraries may be in a
-different location. Specify the location of these libraries to
-configure:
+On Mac OS, the location of the required gsl, gslblas and pthread
+libraries may need to be specified:
 
  ./configure LDFLAGS="-L/opt/local/lib" CPPFLAGS="-I/opt/local/include"
  make; make install
@@ -29,221 +27,87 @@ configure:
 The binary 'svinet' will be installed in /usr/local/bin unless a
 different prefix is provided to configure. (See INSTALL.)
 
+Tutorial
+--------
 
-SVINET: fast stochastic variational inference of undirected networks
+1. Prepare your network data as a tab-separated file (e.g., network.txt)
 
-**svinet** [OPTIONS]
+2. Run the following command to find the overlapping communities: 
 
-        -help           usage
+     svinet -file network.txt -n 10000 -k 75 -link-sampling
 
-        -file <name>    input tab-separated file with a list of undirected links
+3. Run the following command to visualize the communities:
+   
+     cd <output-dir>; svinet -file ../network.txt  -n 10000 -k 75 -gml
 
-        -n <N>          number of nodes in network
+In step 2, "-n" specifies the number of nodes, "-k" specifies the
+number of communities and "-link-sampling" specifies the sampling
+method.
+   
+Step 2 writes out the communities in communities.txt, the model fit in
+gamma.txt and lambda.txt and the mixed-memberships in groups.txt.
 
-        -k <K>          number of communities
+Step 3 writes out a GML file (network.gml) that can be loaded into a
+tool such as Gephi, to visualize the communities. Note that each node
+is colored by its most likely community in the visualization.
 
-        -batch          run batch variational inference
-
-        -stratified     use stratified sampling
-                        (use with rpair or rnode options only)
-
-        -rnode          inference using random node sampling
-
-        -rpair          inference using random pair sampling
-
-        -label          tag output directory
-
-        -link-sampling  inference using link sampling
-
-        -infset         inference using informative set sampling
-
-        -preprocess     preprocess to run informative set sampling
-
-        -rfreq          set the frequency at which
-         * convergence is estimated
-         * statistics, e.g., heldout likelihood are computed
-
-        -max-iterations         maximum number of iterations (use with -no-stop to avoid stopping in an earlier iteration)
-
-        -no-stop                disable stopping criteria
-
-        -seed           set GSL random generator seed
-
-        -gml            generate a GML format file that visualizes link communities
-
-        -nmi <community-file-name> read a community assignment file and report mutual information scores
-                        the binary 'mutual' must be in /usr/local/bin/mutual
-                        Get the Lancichinetti et al. code from here:
-	                https://sites.google.com/site/santofortunato/mutual3.tar.gz
-
-
-Input file format for undirected graphs
----------------------------------------
-
-See the example included file ./example/assort-75-4.txt.
-
-Each line contains a tab-separated pair of node IDs corresponding to a
-link. The file can contain duplicate links or directed links, but the
-graph will be treated as undirected.
-
-
-Recommended for comparisons to competing algorithms
-----------------------------------------------------
-
-I suggest using the communities.txt files obtained by running svinet with two settings of the **link threshold** as follows:
-
-     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.5
-
-     svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling -link-thresh 0.9
-
-For further details on this, please email the authors.
-
-Inference
----------
-
-See svinet -help.
-
-*RECOMMENDED*
-
-link sampling inference:
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -link-sampling
-
-*OTHER OPTIONS*
-
-*batch inference*
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -batch
-
-*inference with random pair sampling*
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -rpair
-
-*inference with random node sampling*
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -rnode
-
-*inference with stratified random pair sampling*
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -rpair -stratified
-
-*inference with stratified random node sampling*
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -rnode -stratified
-
-Preprocessing for the informative set sampling option
------------------------------------------------------
-
-This sampling option is meant to be used on large, sparse networks.
-
-- *preprocess the network*
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -preprocess
-
-- *move the generated "informative set" file to the location where you will run svinet*
-
-mv n17903-k20-mmsb-massive/neighbors.bin .
-
-- *run inference*
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -massive
-
-Saving model state
+Some advanced tips
 ------------------
 
-At any point during inference you can send a signal to the running
-svinet process to save results including the model state and
-discovered groups. The signal is sent as follows.
+1. *Estimating the number of communities*
 
-Find the process ID using the command "ps -ax | grep svinet" (on unix
-systems). Then,
+   Run the following command setting the number of communities equal
+   to the number of nodes:
 
-kill -TERM <process ID>
+   svinet -file network.txt  -n 10000 -k 10000 -findk
 
-The results are also saved when the inference converges and the
-process terminates.
+   Estimate the number of communities using the following:
 
-Stopping criteria
------------------
+   wc -l n10000-k10000-mmsb-findk-uniform/communities.txt
 
-The avg. heldout log likelihood at network sparsity is used to assess
-convergence. (Details in the paper.)
+   Specify this count as the number of communities in step 2 in the tutorial.
 
-The stopping criteria may need to be adjusted for best results. The
-default settings are set as a function of the network size.
+2. *Comparing communities to the ground truth*
 
-For help with adjusting the stopping criteria please contact the
-authors.
+   If you have a text file with ground truth community labels, you can
+   specify it in step 2 above, to compute a normalized mutual
+   information score between the true communities and the inferred
+   communities. Run the command in step 2 as follows:
 
-Parameters
-----------
+     svinet -file network.txt -n 10000 -k 75 -link-sampling -nmi community.txt
 
-If parameters or options cannot be set through the documented command
-line options, you may be able to set them in env.hh. In this case,
-recompile to create a new svinet binary.
+   The format of the ground truth community file is as follows:
 
-Most parameters used in inference are written to param.txt in the
-output directory.
+   node1    <list of communities node1 is a member of>
 
-Output files
-------------
+   e.g., 
+   65	 17 22 43 54
 
-- Each inference run writes output files to a directory. The directory name depends on the input options. See examples below.
+   The above line says node with id 65 is a member of communities 17,
+   22, 43, 54. The community ids are arbitrary.
 
-  - n17903-k20-mmsb-linksampling (link sampling)
-  - n17903-k20-mmsb-rnode        (random node sampling)
-  - n17903-k20-mmsb-Srnode       (stratified random node sampling)
-  - n17903-k20-mmsb-rpair        (random pair sampling)
-  - n17903-k20-mmsb-Srpair       (stratified random pair sampling)
-  - n17903-k20-mmsb-infset       (informative set sampling)
+3. *Comparing communities to results from other methods*
 
-- The files heldout.txt and validation.txt in the directory contain
-  the heldout log likelihood on heldout sets.
+   The authors recommend running svinet with two settings of the
+   **link threshold** as follows:
 
-  The columns are as follows:
+     svinet -file network.txt -n 10000 -k 75 -link-sampling -link-thresh 0.5
 
-     iteration # |
-     cum. duration (secs) |
-     avg. heldout log likelihood |
-     # samples |
-     avg. heldout log likelihood (link) |
-     # link samples |
-     avg. heldout log likelihood (non link) |
-     # nonlink samples |
-     avg. heldout log likelihood (link) at network sparsity |
-     avg. heldout log likelihood (nonlink) at network sparsity |
-     avg. heldout log likelihood at network sparsity
+     svinet -file network.txt -n 10000 -k 75 -link-sampling -link-thresh 0.9
 
-  See the paper for how we compute log likelihood at network sparsity.
+   For further details, see detailed_readme.txt or please email the authors.
 
-- groups.txt : mixed-memberships of nodes
-  	       NOTE: the first column is a sequence
-	       	     the second column is the node ID as in the input file
-		     the last column is the most likely group membership
-		     the columns in between are the expected
-		     membership probabilities
+4. *Set an alternate prior on community strengths*
 
-- communities.txt : This is the community assignment file. Each node is bucketed into a "link community"
-  		    based on whether it exhibited at least one link
-  		    that belongs to that community.
+   The "fromdata" option sets a prior based on the network data on the
+   community strengths and may result in better communities. By
+   default, the prior on community strenths is a uniform distribution.
+
+     svinet -file network.txt -n 10000 -k 75 -link-sampling -eta-type fromdata
+
+5. *Other sampling methods*
+
+   See detailed_readme.txt.
 
 
-- gamma.txt: posterior variational mixed-membership parameter
-  	     (Dirichlet parameters)
-
-- lambda.txt: inferred posterior community strengths (Beta parameters)
-
-
-Visualize link communities
---------------------------
-
-After the model has been saved, i.e., gamma.txt and lambda.txt exist,
-run the following command to visualize the link communities.
-
-svinet -file ca-AstroPh.csv -n 17903 -k 20 -gml
-
-The output file is written to network.gml.
-
-Load the file in Gephi to visualize it. Use each node's "group" member
-and each edge's "color" member for "partitioning".  Use the bridgeness
-to size each node. (First, copy bridgeness to a new column with column
-type BigDecimal.)
+   

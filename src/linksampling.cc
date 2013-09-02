@@ -59,23 +59,6 @@ LinkSampling::LinkSampling(Env &env, Network &network)
   Env::plog("avg degree", avg);
   Env::plog("max degree", max);
 
-  if (env.eta_type == "default") {
-    env.eta0 = 0.001; // XXX: why not Beta(1,1)?
-    env.eta1 = 0.001;
-  } else if (env.eta_type == "dense") {
-    env.eta0 = env.eta0_dense;
-    env.eta1 = env.eta1_dense;
-  } else if (env.eta_type == "sparse") {
-    env.eta0 = env.eta0_sparse;
-    env.eta1 = env.eta1_sparse;
-  } else if (env.eta_type == "regular") {
-    env.eta0 = env.eta0_regular;
-    env.eta1 = env.eta1_regular;
-  } else {
-    lerr("unknown eta_type\n");
-    assert(0);
-  }
-
   double **d = _eta.data();
   for (uint32_t i = 0; i < _eta.m(); ++i) {
     d[i][0] = env.eta0;
@@ -96,23 +79,21 @@ LinkSampling::LinkSampling(Env &env, Network &network)
     printf("cannot open heldout edges file:%s\n",  strerror(errno));
     exit(-1);
   }
-
-  _pef = fopen(Env::file_str("/precision-edges.txt").c_str(), "w");
-  if (!_pef)  {
-    printf("cannot open heldout edges file:%s\n",  strerror(errno));
-    exit(-1);
+  
+  if (_env.create_test_precision_sets) {
+    _pef = fopen(Env::file_str("/precision-edges.txt").c_str(), "w");
+    if (!_pef)  {
+      printf("cannot open heldout edges file:%s\n",  strerror(errno));
+      exit(-1);
+    }
   }
 
-  _vef = fopen(Env::file_str("/validation-edges.txt").c_str(), "w");
-  if (!_vef)  {
-    printf("cannot open validation edges file:%s\n",  strerror(errno));
-    exit(-1);
-  }
-
-  _tef = fopen(Env::file_str("/training-edges.txt").c_str(), "w");
-  if (!_tef)  {
-    printf("cannot open training edges file:%s\n",  strerror(errno));
-    exit(-1);
+  if (!_env.single_heldout_set) {
+    _vef = fopen(Env::file_str("/validation-edges.txt").c_str(), "w");
+    if (!_vef)  {
+      printf("cannot open validation edges file:%s\n",  strerror(errno));
+      exit(-1);
+    }
   }
 
   if (!_env.load_heldout) {
@@ -152,18 +133,13 @@ LinkSampling::LinkSampling(Env &env, Network &network)
     exit(-1);
   }
 
-  _vf = fopen(Env::file_str("/validation.txt").c_str(), "w");
-  if (!_vf)  {
-    printf("cannot open validation file:%s\n",  strerror(errno));
-    exit(-1);
+  if (!_env.single_heldout_set) {
+    _vf = fopen(Env::file_str("/validation.txt").c_str(), "w");
+    if (!_vf)  {
+      printf("cannot open validation file:%s\n",  strerror(errno));
+      exit(-1);
+    }
   }
-
-  _trf = fopen(Env::file_str("/training.txt").c_str(), "w");
-  if (!_trf)  {
-    printf("cannot open training file:%s\n",  strerror(errno));
-    exit(-1);
-  }
-
   Env::plog("network ones", _network.ones());
   Env::plog("network singles", _network.singles());
 
@@ -177,10 +153,6 @@ LinkSampling::LinkSampling(Env &env, Network &network)
   heldout_likelihood(a, b, c);
   validation_likelihood(a, b, c);
 
-#ifdef TRAINING_SAMPLE
-  training_likelihood(a, b, c);
-#endif
-
   info("+ link sampling init end\n");
   gettimeofday(&_last_iter, NULL);
   _start_time = time(0);
@@ -191,7 +163,6 @@ LinkSampling::~LinkSampling()
   fclose(_hf);
   fclose(_vf);
   fclose(_lf);
-  fclose(_trf);
 }
 
 void
@@ -211,25 +182,20 @@ LinkSampling::init_heldout()
   if (!_env.single_heldout_set)
     set_validation_sample(s1);
 
-#ifdef TRAINING_SAMPLE
-  set_training_sample(2*(_network.ones() - s));
-#endif
-
   Env::plog("heldout ratio", _env.heldout_ratio);
   Env::plog("heldout pairs (1s and 0s)", _heldout_map.size());
-  Env::plog("precision pairs (1s and 0s)", _precision_map.size());
   fprintf(_hef, "%s\n", edgelist_s(_heldout_pairs).c_str());
-  fprintf(_pef, "%s\n", edgelist_s(_precision_pairs).c_str());
-  fprintf(_vef, "%s\n", edgelist_s(_validation_pairs).c_str());
-
-#ifdef TRAINING_SAMPLE
-  fprintf(_tef, "%s\n", edgelist_s(_training_pairs).c_str());
-#endif
-
   fclose(_hef);
-  fclose(_pef);
-  fclose(_vef);
-  fclose(_tef);
+
+  if (_env.create_test_precision_sets) {
+    Env::plog("precision pairs (1s and 0s)", _precision_map.size());
+    fprintf(_pef, "%s\n", edgelist_s(_precision_pairs).c_str());
+    fclose(_pef);
+  }
+  if (!_env.single_heldout_set) {
+    fprintf(_vef, "%s\n", edgelist_s(_validation_pairs).c_str());
+    fclose(_vef);
+  }
 }
 
 string
@@ -356,45 +322,9 @@ LinkSampling::set_validation_sample(int s)
   }
 }
 
-
-#ifdef TRAINING_SAMPLE
-void
-LinkSampling::set_training_sample(int s)
-{
-  int c0 = 0;
-  int c1 = 0;
-  int p = s / 2;
-  while (c0 < p || c1 < p) {
-    Edge e;
-    if (c0 == p)
-      get_random_edge(true, e); // link
-    else
-      get_random_edge(false, e); // nonlink
-
-    uint32_t a = e.first;
-    uint32_t b = e.second;
-    yval_t y = get_y(a,b);
-
-    if (y == 0 and c0 < p) {
-      c0++;
-      _training_pairs.push_back(e);
-      _training_map[e] = true;
-    }
-    if (y == 1 and c1 < p) {
-      c1++;
-      _training_pairs.push_back(e);
-      _training_map[e] = true;
-    }
-  }
-}
-#endif
-
 void
 LinkSampling::set_precision_uniform_sample(int s)
 {
-  if (_env.accuracy)
-    return;
-  printf("set heldout sample");
   int c0 = 0;
   int c1 = 0;
   int p = s;
@@ -907,10 +837,7 @@ LinkSampling::infer()
     _gamma.swap(_gammanext);
     _lambda.swap(_lambdanext);
 
-    //_gamma.reset(_gammanext);
     _gammanext.set_elements(_env.alpha);
-    
-    //_lambda.reset(_lambdanext);
     _lambdanext.copy_from(_eta);
 
     set_dir_exp(_gamma, _Elogpi);
@@ -937,7 +864,8 @@ LinkSampling::infer()
     if (_iter % _env.reportfreq == 0) {
       double a, b, c;
       heldout_likelihood(a, b, c);
-      compute_test_likelihood();
+      if (_env.create_test_precision_sets)
+	compute_test_likelihood();
       log_communities();
     }
     _iter++;
@@ -950,6 +878,7 @@ LinkSampling::do_on_stop()
 {
   log_communities();
   save_model();
+  write_groups();
   if (_env.create_test_precision_sets) {
     precision_likelihood();
     auc();
@@ -1023,8 +952,6 @@ LinkSampling::auc()
     double u = link_prob(p,q);
 
     fprintf(f, "%d %.3f\n", y, u);
-    //printf("\r%d", c++);
-    //fflush(stdout);
   }
   fclose(f);
   char cmd[1024];
@@ -1100,9 +1027,6 @@ LinkSampling::gml(uint32_t cid, const vector<uint32_t> &ids)
       if (ids[i] < ids[j] && _network.y(ids[i],ids[j]) != 0) {
 	get_Epi(ids[i], pp);
 	get_Epi(ids[j], qp);
-
-	//_Epi.slice(0, ids[i], pp);
-	//_Epi.slice(0, ids[j], qp);
 	
 	Array beta(_k);
 	estimate_beta(beta);
@@ -1180,11 +1104,6 @@ LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
       validation_likelihood(av0, av1, av2);
       
       double at0 = 0;
-#ifdef TRAINING_SAMPLE
-      double at1 = 0, at2 = 0;
-      training_likelihood(at0, at1, at2);
-#endif
-
       _max_h = a;
       _max_v = av0;
       _max_t = at0;
@@ -1236,7 +1155,11 @@ LinkSampling::compute_test_likelihood()
   }
   test_likelihood(_biased_map, bf);
   fclose(bf);
+
+  biased_auc();
+  uniform_auc();
 }
+
 
 void
 LinkSampling::test_likelihood(const SampleMap &m, FILE *outf)
@@ -1273,6 +1196,48 @@ LinkSampling::test_likelihood(const SampleMap &m, FILE *outf)
 	  _ones_prob * (sones / kones),
 	  nshol);
   fflush(outf);
+}
+
+void
+LinkSampling::biased_auc()
+{
+  uint32_t c = 0;
+  FILE *f = fopen(Env::file_str("/biased_auc.txt").c_str(), "w");
+  for (SampleMap::const_iterator i = _biased_map.begin();
+       i != _biased_map.end(); ++i) {
+    
+    const Edge &e = i->first;
+    uint32_t p = e.first;
+    uint32_t q = e.second;
+    assert (p != q);
+    
+    yval_t y = _network.y(p,q);
+    double u = link_prob(p,q);
+
+    fprintf(f, "%d %.3f\n", y, u);
+  }
+  fclose(f);
+}
+
+void
+LinkSampling::uniform_auc()
+{
+  uint32_t c = 0;
+  FILE *f = fopen(Env::file_str("/uniform_auc.txt").c_str(), "w");
+  for (SampleMap::const_iterator i = _uniform_map.begin();
+       i != _uniform_map.end(); ++i) {
+    
+    const Edge &e = i->first;
+    uint32_t p = e.first;
+    uint32_t q = e.second;
+    assert (p != q);
+    
+    yval_t y = _network.y(p,q);
+    double u = link_prob(p,q);
+
+    fprintf(f, "%d %.3f\n", y, u);
+  }
+  fclose(f);
 }
 
 
@@ -1352,109 +1317,6 @@ LinkSampling::validation_likelihood(double &av, double &av0, double &av1) const
   av0 = szeros / kzeros;
   av1 = sones / kones;
 }
-
-
-#ifdef TRAINING_SAMPLE
-void
-LinkSampling::training_likelihood(double &av, double &av0, double &av1)
-{
-  uint32_t k = 0, kzeros = 0, kones = 0;
-  double s = .0, szeros = 0, sones = 0;
-  uint32_t c = 0;
-  for (SampleMap::const_iterator i = _training_map.begin();
-       i != _training_map.end(); ++i) {
-    const Edge &e = i->first;
-    uint32_t p = e.first;
-    uint32_t q = e.second;
-    assert (p != q);
-    yval_t y = _network.y(p,q);
-    if (!seen)
-      c++;
-    double u = edge_likelihood(p,q,y);
-    s += u;
-    k += 1;
-    if (y) {
-      sones += u;
-      kones++;
-    } else {
-      szeros += u;
-      kzeros++;
-    }
-    debug("edge likelihood for (%d,%d) is %f\n", p,q,u);
-  }
-  double nshol = (_zeros_prob * (szeros / kzeros)) + (_ones_prob * (sones / kones));
-  fprintf(_trf, "%d\t%d\t%.9f\t%d\t%.9f\t%d\t%.9f\t%d\t%.9f\t%.9f\t%.9f\n",
-	  _iter, duration(), s / k, k,
-	  szeros / kzeros, kzeros, sones / kones, kones,
-	  _zeros_prob * (szeros / kzeros),
-	  _ones_prob * (sones / kones),
-	  nshol);
-  fflush(_trf);
-
-  double a = nshol;
-
-  bool stop = false;
-  int why = -1;
-  if (_iter > 100) {
-    if (a > _prev_t && _prev_t != 0 && fabs((a - _prev_t) / _prev_t) < 0.00001) {
-      stop = true;
-      why = 0;
-    } else if (a < _prev_t)
-      _nh++;
-    else if (a > _prev_t)
-      _nh = 0;
-
-    if (a > _max_t)
-      _max_t = a;
-
-    if (_nh > 2) {
-      why = 1;
-      stop = true;
-    }
-  }
-  _prev_t = a;
-
-  av = s / k;
-  av0 = szeros / kzeros;
-  av1 = sones / kones;
-  /*
-  double thresh = _env.stopthresh;
-  double w = av;
-  bool stop = false;
-  if (_env.accuracy && _iter > 1000 && !_training_done) {
-    if (w > _prev_t && _prev_t != 0 && fabs((w - _prev_t) / _prev_t) < thresh) {
-      stop = true;
-    } else if (w > _max_t) {
-      _max_t = w;
-      _nt = 0;
-    } else if (w < _max_t) {
-      _nt++;
-    }
-    if (_nt > 3)
-      stop = true;
-  }
-  */
-
-  if (_env.use_training_stop && stop) {
-    FILE *f = fopen(Env::file_str("/donet.txt").c_str(), "w");
-    fprintf(f, "%d\t%d\t%.5f\t%d\n", _iter, duration(), a, why); 
-    fclose(f);
-    
-    if (_env.nmi) {
-      char cmd[1024];
-      sprintf(cmd, "/usr/local/bin/mutual %s %s >> %s",
-		Env::file_str("/ground_truth.txt").c_str(),
-		Env::file_str("/communities.txt").c_str(), 
-		Env::file_str("/donet.txt").c_str());
-	if  (system(cmd) < 0)
-	  lerr("error spawning %s:%s", cmd, strerror(errno));
-    }
-    _training_done = true;
-    exit(0);
-  }
-  _prev_t = a;
-}
-#endif
 
 
 int
@@ -1605,5 +1467,31 @@ LinkSampling::load_heldout()
   Env::plog("link sampling: loaded heldout pairs:", n);
   fprintf(_hef, "%s\n", edgelist_s(_heldout_pairs).c_str());
   fclose(_hef);
+  fclose(f);
+}
+
+void
+LinkSampling::write_groups()
+{
+  Array pi(_k);
+  const IDMap &seq2id = _network.seq2id();
+  FILE *f = fopen(Env::file_str("/groups.txt").c_str(), "w");
+  Array groups(_n);
+  uint32_t id = 0;
+  for (uint32_t i = 0; i < _n; ++i) {
+    IDMap::const_iterator it = seq2id.find(i);
+    if (it == seq2id.end()) { // single node
+      id = i;
+    } else
+      id = it->second;
+    get_Epi(i, pi);
+    fprintf(f, "%d\t%d\t", i, id);
+    for (uint32_t j = 0; j < _k; ++j) {
+      if (j == _k - 1)
+	fprintf(f,"%.3f\n", pi[j]);
+      else
+	fprintf(f,"%.3f\t", pi[j]);
+    }
+  }
   fclose(f);
 }

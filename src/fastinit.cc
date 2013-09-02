@@ -39,55 +39,16 @@ FastInit::FastInit(Env &env, Network &network, uint32_t max_deg)
    _neighbors(_env.reportfreq),
    _unlikely(0), _prev_unlikely(0)
 {
-  fprintf(stdout, "+ fastinit begin\n");
-  fflush(stdout);
-
   if (env.undirected)
     _total_pairs = _n * (_n - 1) / 2;
   else
     _total_pairs = _n * (_n - 1);
 
-  fprintf(stdout, "+ running inference on %d nodes\n", _n);
+  fprintf(stdout, "+ Estimating communities on input network with %d nodes\n", _n);
   Env::plog("inference n", _n);
   Env::plog("total pairs", _total_pairs);
 
   _alpha.set_elements(env.alpha);
-  printf("alpha set to %s\n", _alpha.s().c_str());
-  fflush(stdout);
-  _ones_prob = double(_network.ones()) / _total_pairs;
-  _zeros_prob = 1 - _ones_prob;
-
-  info("ones_prob = %.2f", _ones_prob);
-  Env::plog("ones_prob", _ones_prob);
-  Env::plog("zeros_prob", _zeros_prob);
-  uint32_t max;
-  double avg;
-  _network.deg_stats(max, avg);
-  Env::plog("avg degree", avg);
-  Env::plog("max degree", max);
-
-  if (env.eta_type == "default") {
-    env.eta0 = _total_pairs * _ones_prob / _k;
-    env.eta1 = (_total_pairs / (_k * _k)) - _env.eta0;
-    if (env.eta1 < 0)
-      env.eta1 = 1.0;
-    //env.eta0 = 6;
-    //env.eta1 = 4;
-  } else if (env.eta_type == "dense") {
-    env.eta0 = env.eta0_dense;
-    env.eta1 = env.eta1_dense;
-  } else if (env.eta_type == "sparse") {
-    env.eta0 = env.eta0_sparse;
-    env.eta1 = env.eta1_sparse;
-  } else if (env.eta_type == "regular") {
-    env.eta0 = env.eta0_regular;
-    env.eta1 = env.eta1_regular;
-  } else {
-    fprintf(stdout, "unknown eta_type\n");
-    fflush(stdout);
-    assert(0);
-  }
-
   double **d = _eta.data();
   for (uint32_t i = 0; i < _eta.m(); ++i) {
     d[i][0] = env.eta0;
@@ -131,7 +92,6 @@ FastInit::FastInit(Env &env, Network &network, uint32_t max_deg)
     exit(-1);
   }
 
-  printf("+ done heldout\n");
   init_gamma();
 
   _tf = fopen(Env::file_str("/time.txt").c_str(), "w");
@@ -184,8 +144,6 @@ FastInit::FastInit(Env &env, Network &network, uint32_t max_deg)
     exit(-1);
   }
 
-  fprintf(stdout, "+ fastinit end\n");
-  fflush(stdout);
   gettimeofday(&_last_iter, NULL);
   _start_time = time(0);
 
@@ -281,23 +239,16 @@ FastInit::set_gamma()
 void
 FastInit::batch_infer()
 {
-  printf("FastInit::batch_infer()\n");
-  fflush(stdout);
-
   while (1) {
     //if ((_iter > 5 && _prev_unlikely > 0 && _unlikely > _prev_unlikely) || _iter > 15)
     //exit(0);
 
-    if (_iter > log10(_n))
+    if (_iter > log10(_n)) {
+      printf("+ Done\n");
       exit(0);
-    
-    printf("\n");
+    }
     uint32_t bad = 0;
     for (uint32_t p = 0; p < _n; ++p) {
-
-      if (p % 100 == 0)
-	lerr("%d:%d\n", _iter, p);
-
       const vector<uint32_t> *edges = _network.get_edges(p);
       for (uint32_t r = 0; r < edges->size(); ++r) {
 	uint32_t q = (*edges)[r];
@@ -321,13 +272,10 @@ FastInit::batch_infer()
       qmap[_maxgamma[p]] += 1;
       }
     }
-
-    printf("bad = %d\n", bad);
-    
     set_gamma();
     estimate_all_pi();
 
-    printf("avg. link training likelihood = %.5f\n", training_likelihood());
+    info("avg. link training likelihood = %.5f\n", training_likelihood());
     
     _iter++;
 
@@ -392,15 +340,16 @@ FastInit::compute_and_log_groups()
 	  _unlikely++;
 	  continue;
 	}
-	assert (max_k < _n);
-	
-	_communities[max_k].push_back(i);
-	_communities[max_k].push_back(m);
+	//assert (max_k < _n);
+	if (max_k != 65535) {
+	  _communities[max_k].push_back(i);
+	  _communities[max_k].push_back(m);
+	}
       }
     }
   }
   fprintf(_uf, "%d\n", _unlikely);
-  printf("unlikely = %d\n", _unlikely);
+  //printf("unlikely = %d\n", _unlikely);
 
   for (std::map<uint32_t, vector<uint32_t> >::const_iterator i = _communities.begin();
        i != _communities.end(); ++i) {
@@ -500,10 +449,6 @@ FastInit::training_likelihood() const
   double u = .0;
   uint32_t c = 0;
   for (uint32_t p = 0; p < _n; ++p) {
-    
-    if (p % 100 == 0)
-      lerr("%d:%d\n", _iter, p);
-    
     const vector<uint32_t> *edges = _network.get_edges(p);
     for (uint32_t r = 0; r < edges->size(); ++r) {
       uint32_t q = (*edges)[r];

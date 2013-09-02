@@ -37,11 +37,13 @@ Logger::xlog(Level level, const char *format, ...)
   va_start (ap, format);
   string ts = get_time();
   string l = get_level_str(level);
+
   // send errors to terminal and the log
   if (level == Logger::ERROR)  {
     fprintf(stderr, "%s ", l.c_str());
     fflush(stdout);
   }
+
   fprintf(_logfd, "[%s] [%d] [%3s] ", ts.c_str(), getpid(), l.c_str());
   vfprintf(_logfd, format, ap);
   fprintf(_logfd, "\n\n");

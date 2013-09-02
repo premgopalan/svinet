@@ -114,6 +114,7 @@ Network::read(string s)
   fprintf(stdout, "\n+ Done reading network\n");
   fflush(stdout);
 
+  set_env_variables();
   set_avg_deg();
   
   if (_env.nmi) {
@@ -216,6 +217,37 @@ Network::deg_stats(uint32_t &max, double &avg) const
     }
   }
   avg = (double)s / k;
+}
+
+void
+Network::set_env_variables()
+{
+  _env.total_pairs = _env.n * (_env.n - 1) / 2;
+  Env::plog("total pairs", _env.total_pairs);
+
+  _env.ones_prob = (double)ones() / _env.total_pairs;
+  _env.zeros_prob = 1 - _env.ones_prob;
+  Env::plog("ones_prob", _env.ones_prob);
+  Env::plog("zeros_prob", _env.zeros_prob);
+  
+  if (_env.eta_type == "fromdata") {
+    _env.eta0 = _env.total_pairs * _env.ones_prob / _env.k;
+    _env.eta1 = _env.total_pairs * 1.0 / (_env.k * _env.k) - _env.eta0;
+    if (_env.eta1 <= 0)
+      _env.eta1 = 1.0;    
+  } else if (_env.eta_type == "uniform") {
+    _env.eta0 = 1;
+    _env.eta1 = 1;
+  } else if (_env.eta_type == "sparse") {
+    _env.eta0 = _env.eta0_sparse;
+    _env.eta1 = _env.eta1_sparse;
+  } else if (_env.eta_type == "dense") {
+    _env.eta0 = _env.eta0_dense;
+    _env.eta1 = _env.eta1_dense;
+  } else {
+    lerr("unknown eta_type\n");
+    assert(0);
+  }
 }
 
 void
@@ -475,10 +507,10 @@ Network::gt_gml_seq(uint32_t cid, const vector<uint32_t> &ids)
 void
 Network::write_gt_communities()
 {
-  printf("writing ground truth communities\n");
+  printf("+ Writing ground truth communities\n");
   fflush(stdout);
   FILE *f = fopen(Env::file_str("/ground_truth.txt").c_str(), "w");
-  FILE *g = fopen(Env::file_str("/ground_truth_stats.txt").c_str(), "w");
+  FILE *g = fopen(Env::file_str("/ground_truth_community_sizes.txt").c_str(), "w");
   uint32_t c = 0;
   for (MapVec::const_iterator it = _gt_communities.begin(); 
        it != _gt_communities.end(); ++it) {

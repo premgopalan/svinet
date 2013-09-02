@@ -28,8 +28,8 @@ public:
     _curr_seq(0), _ones(0), _single_nodes(0),
     _deg(env.n),_avg_deg(.0) { }
   ~Network() { }
-  int read(string s);
 
+  int read(string s);
   const SparseMatrix &sparse_y() const { return _sparse_y; }
   SparseMatrix &sparse_y() { return _sparse_y; }
   SparseMatrix &sparse_zeros() { return _sparse_zeros; }
@@ -37,9 +37,7 @@ public:
   vector<uint32_t> *sparse_zeros(uint32_t a) { return _sparse_zeros[a]; }
 
   uint32_t n() const;
-
   yval_t y(uint32_t i, uint32_t j) const;
-  //bool exists(uint32_t p, uint32_t q) const;
 
   const EdgeList &edges() const { return _edges; }
   EdgeList &edgelist() { return _edges; }
@@ -76,6 +74,8 @@ public:
   void gt_gml(uint32_t cid, const vector<uint32_t> &ids);
   void gt_gml_seq(uint32_t cid, const vector<uint32_t> &ids);
   int load_gt_groups();
+  void set_env_variables();
+
   const vector<uint32_t> *get_edges(uint32_t a);
 
   const IDMap &id2seq() const { return _id2seq; }

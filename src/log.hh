@@ -45,7 +45,7 @@ private:
 
 #ifndef DEBUG_MODE
 #define debug(X, ...)
-#define info(format, ...) Logger::xlog(Logger::INFO, format, ## __VA_ARGS__)
+#define info(format, ...) 
 #define tst(X, ...) 
 #define lerr(format, ...) Logger::xlog(Logger::ERROR, format, ## __VA_ARGS__)
 #else

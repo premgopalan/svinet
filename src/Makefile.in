@@ -44,11 +44,11 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_svinet_OBJECTS = gammapoisson.$(OBJEXT) mmsbinfer.$(OBJEXT) \
-	linksampling.$(OBJEXT) log.$(OBJEXT) network.$(OBJEXT) \
-	thread.$(OBJEXT) mmsbinferorig.$(OBJEXT) fastamm.$(OBJEXT) \
-	fastamm-sparsek.$(OBJEXT) sbm.$(OBJEXT) fastamm2.$(OBJEXT) \
-	mmsbgen.$(OBJEXT) mmsborig.$(OBJEXT) mmsb.$(OBJEXT)
+am_svinet_OBJECTS = mmsbinfer.$(OBJEXT) linksampling.$(OBJEXT) \
+	log.$(OBJEXT) network.$(OBJEXT) thread.$(OBJEXT) \
+	mmsbinferorig.$(OBJEXT) fastamm.$(OBJEXT) sbm.$(OBJEXT) \
+	fastamm2.$(OBJEXT) mmsbgen.$(OBJEXT) mmsborig.$(OBJEXT) \
+	main.$(OBJEXT) fastinit.$(OBJEXT)
 svinet_OBJECTS = $(am_svinet_OBJECTS)
 svinet_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -160,21 +160,20 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-svinet_SOURCES = gammapoisson.hh gammapoisson.cc\
-	mmsbinfer.hh mmsbinfer.cc\
+svinet_SOURCES = mmsbinfer.hh mmsbinfer.cc\
 	linksampling.hh	linksampling.cc\
 	matrix.hh env.hh log.cc log.hh\
 	network.cc network.hh\
 	thread.hh thread.cc\
 	mmsbinferorig.hh mmsbinferorig.cc\
 	fastamm.cc fastamm.hh\
-	fastamm-sparsek.cc fastamm-sparsek.hh\
 	sbm.hh sbm.cc\
 	fastamm2.cc fastamm2.hh\
 	mmsbgen.cc mmsbgen.hh\
 	mmsborig.cc mmsborig.hh\
-	mmsb.cc \
-	tsqueue.hh fastqueue.hh community.hh
+	main.cc \
+	tsqueue.hh fastqueue.hh community.hh \
+	fastinit.hh fastinit.cc
 
 all: all-am
 
@@ -257,13 +256,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fastamm-sparsek.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fastamm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fastamm2.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gammapoisson.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fastinit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linksampling.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmsb.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmsbgen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmsbinfer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmsbinferorig.Po@am__quote@

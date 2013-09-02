@@ -69,7 +69,7 @@ public:
       double rand_seed, 
       double link_thresh, uint32_t lt_min_deg,
       bool init_comm, string init_comm_fname,
-      bool link_sampling);
+      bool link_sampling, bool gml, bool findk);
 
   ~Env() { fclose(_plogf); }
 
@@ -109,8 +109,6 @@ public:
 
   double eta0_dense;
   double eta1_dense;
-  double eta0_regular;
-  double eta1_regular;
   double eta0_uniform;
   double eta1_uniform;
   double eta0_sparse;
@@ -154,7 +152,6 @@ public:
   double seed;
 
   bool terminate;
-
   string datfname;
 
   // debug
@@ -187,6 +184,10 @@ public:
   string init_communities_fname;
   bool compute_auc;
   bool link_sampling;
+
+  uint64_t total_pairs;
+  double ones_prob;
+  double zeros_prob;
 
   template<class T> static void plog(string s, const T &v);
   static string file_str(string fname);
@@ -295,7 +296,7 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
 	 double rand_seed,
 	 double link_thresh, uint32_t lt_min_deg,
 	 bool init_comm, string init_comm_fname,
-	 bool link_sampling_opt)
+	 bool link_sampling_opt, bool gml, bool findk)
   : n(N),
     k(K),
     t(2),
@@ -362,8 +363,6 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
 
     eta0_dense(4700.59),
     eta1_dense(0.77),
-    eta0_regular(3.87),
-    eta1_regular(1.84),
     eta0_uniform(1.00),
     eta1_uniform(1.00),
     eta0_sparse(0.97),
@@ -439,24 +438,11 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     datfname(dfname),
     deterministic(false),
 
-    //gen
     disjoint(dis),
     gen(gen1),
 
     //ppc
     ppc_ndraws(100),
-
-    // GAMMA POISSON
-    //default_shape(0.001),
-    //default_rate(0.001)
-    //default_shape(100),
-    //default_rate(100),
-
-    default_shape(0.5),
-    default_rate(2),
-
-    //default_shape(0.01),
-    //default_rate(1),
     nthreads(nthrs),
     label(lbl),
 
@@ -465,7 +451,7 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
       
       This sets the prior on the community strengths. Default option computes
       these strengths based on link density of the network. You can also set 
-      this is to "dense", "sparse", "regular" or "uniform" which sets the
+      this is to "dense", "sparse", "uniform" or "fromdata" which sets the
       Beta parameters corresponding to dense communities, sparse communities
       etc. To further control this prior, change the Beta parameters of one of
       these types (i.e., eta0_dense, eta1_dense above) and set eta_type to that
@@ -508,7 +494,7 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     randompair = true;
 
   ostringstream sa;
-  if (!gen) {
+  if (!gen && !gml) {
     sa << "n" << n << "-";
     sa << "k" << k;
     if (label != "")
@@ -531,6 +517,8 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
       sa << "-infset";
     else if (link_sampling)
       sa << "-linksampling";
+    else if (findk)
+      sa << "-findk";
     else {
       if (stratified || delaylearn || nolambda || undirected || randomnode)
 	sa << "-";
@@ -555,16 +543,14 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
       sa << "-T" << nthreads;
     if (itype > 0)
       sa << "-i" << itype;
-    if (eta_type != "default")
-      sa << "-" << eta_type;
-  } else {
-    assert (!sbm);
+  } else if (!gml) {
     if (disjoint)
       sa << "gend-";
     else
       sa << "gen-";
     sa << "n" << n << "-";
     sa << "k" << k << "-";
+
     if (eta0_gen == eta0_sparse)
       sa << "sparse";
     else if (eta0_gen == eta0_dense)
@@ -572,8 +558,7 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     else
       sa << "regular";
   }
-
-  prefix = sa.str();
+  prefix = gml ? "gml" : sa.str();
   level = Logger::INFO;
 
   if (!ppc) {
@@ -620,6 +605,8 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     plog("load_test_sets", load_test_sets);
     plog("hol_load", hol_load);
     plog("hol_location", hol_location);
+    plog("reportfreq", reportfreq);
+    plog("eta_type", eta_type);
   }
 
   if (!gen && !ppc) {

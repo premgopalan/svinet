@@ -2,12 +2,11 @@
 #include "mmsbinfer.hh"
 #include "linksampling.hh"
 #include "fastamm.hh"
+#include "fastinit.hh"
 #include "fastamm2.hh"
 #include "sbm.hh"
-#include "fastamm-sparsek.hh"
 #include "mmsbinferorig.hh"
 #include "mmsbgen.hh"
-#include "gammapoisson.hh"
 #include "log.hh"
 #include "mmsborig.hh"
 #include "fastqueue.hh"
@@ -51,6 +50,7 @@ main(int argc, char **argv)
   string datfname = "network.dat";
   bool gen = false, ppc = false, lcstats = false;
   bool gml = false;
+  bool findk = false;
   string label = "mmsb";
   uint32_t nthreads = 0;
   int i = 1;
@@ -75,8 +75,7 @@ main(int argc, char **argv)
   bool logl = false;
 
   int itype = 0; // init type
-  string eta_type = "default"; // "default", "sparse", "regular" or "dense"
-  uint32_t reportfreq  = 0;
+  string eta_type = "uniform"; // "uniform", "fromdata", "sparse", "regular" or "dense"
   uint32_t rfreq = 1;
   bool accuracy = false;
   double stopthresh = 0.00001;
@@ -133,11 +132,14 @@ main(int argc, char **argv)
       lcstats = true;
     } else if (strcmp(argv[i], "-gml") == 0) {
       gml = true;
+    } else if (strcmp(argv[i], "-findk") == 0) {
+      findk = true;
     } else if (strcmp(argv[i], "-gen") == 0) {
       gen = true;
     } else if (strcmp(argv[i], "-stratified") == 0) {
       stratified = true;
-      rfreq = 100;
+      if (rfreq == 1)
+	rfreq = 100;
     } else if (strcmp(argv[i], "-batch") == 0) {
       batch = true;
       online = false;
@@ -151,10 +153,12 @@ main(int argc, char **argv)
       nodelay = true;
     } else if (strcmp(argv[i], "-rnode") == 0) {
       rnode = true;
-      rfreq = 100;
+      if (rfreq == 1)
+	rfreq = 100;
     } else if (strcmp(argv[i], "-rpair") == 0) {
       rpair = true;
-      rfreq = 100;
+      if (rfreq == 1)
+	rfreq = 100;
     } else if (strcmp(argv[i], "-load") == 0) {
       load = true;
       location = string(argv[++i]);
@@ -181,8 +185,6 @@ main(int argc, char **argv)
       massive = true;
     } else if (strcmp(argv[i], "-single") == 0) {
       single = true;
-    } else if (strcmp(argv[i], "-sparsek") == 0) {
-      sparsek = true;
     } else if (strcmp(argv[i], "-itype") == 0) {
       itype = atoi(argv[++i]);
     } else if (strcmp(argv[i], "-eta-type") == 0) {
@@ -191,7 +193,7 @@ main(int argc, char **argv)
       ground_truth_fname = string(argv[++i]);
       nmi = true;
     } else if (strcmp(argv[i], "-rfreq") == 0) {
-      reportfreq = atoi(argv[++i]);
+      rfreq = atoi(argv[++i]);
     } else if (strcmp(argv[i], "-accuracy") == 0) {
       accuracy = true;
     } else if (strcmp(argv[i], "-stopthresh") == 0) {
@@ -236,9 +238,6 @@ main(int argc, char **argv)
 
   assert (!(batch && online));
 
-  if (reportfreq == 0)
-    reportfreq = rfreq; // use default
-  
   Env env(n, k, massive, single, batch, stratified, 
 	  nodelay, rpair, rnode, 
 	  load, location, 
@@ -247,7 +246,7 @@ main(int argc, char **argv)
 	  adamic_adar,
 	  scale, disjoint,
 	  force_overwrite_dir, datfname, 
-	  (ppc || gml), run_gap, gen, label, nthreads, itype, eta_type,
+	  ppc, run_gap, gen, label, nthreads, itype, eta_type,
 	  nmi, ground_truth_fname, rfreq, 
 	  accuracy, stopthresh, infthresh, 
 	  nonuniform, bmark, randzeros, preprocess, 
@@ -255,7 +254,7 @@ main(int argc, char **argv)
 	  max_iterations, use_validation_stop, rand_seed,
 	  link_thresh, lt_min_deg,
 	  init_comm, init_comm_fname,
-	  link_sampling);
+	  link_sampling, gml, findk);
 
   env_global = &env;
   Network network(env);
@@ -287,15 +286,7 @@ main(int argc, char **argv)
   if (!gml) {
     info("+ logging and assessing convergence "
 	    "every %d iterations\n", env.reportfreq);
-    Env::plog("reportfreq", env.reportfreq);
   }
-
-  if (gen && run_gap) {
-    info("+ generating gap network\n");
-    GammaPoisson gap(env, network);
-    gap.gen();
-    exit(0);
-  } 
 
   if (ppc && run_gap)
     assert(0);
@@ -315,17 +306,19 @@ main(int argc, char **argv)
 
   if (gml) {
     info("+ generating GML file\n");
-    MMSBGen mmsbgen(env, network, true);
+    MMSBGen mmsbgen(env, network, false);
     mmsbgen.gml();
     exit(0);
   }
-  
-  if (run_gap) {
-    info("+ running poisson model inference\n");
-    GammaPoisson gap(env, network);
-    gap.em();
+
+  if (findk) {
+    uint32_t max;
+    double avg;
+    network.deg_stats(max, avg);
+    FastInit fastinit(env, network, max);
+    fastinit.batch_infer();
     exit(0);
-  } 
+  }
 
   if (orig) { // Airoldi et al.
     info("+ running mmsb inference with full blockmodel\n");
@@ -351,22 +344,13 @@ main(int argc, char **argv)
     exit(0);
   }
   
-  // mixed-membership
-  
   if (batch) {
     MMSBInfer mmsb(env, network);
     info("+ running mmsb batch inference\n");
     mmsb.batch_infer();
     exit(0);
   }
-  
-  if (sparsek) {
-    FastAMMSparseK fastamm(env, network);
-    info("+ running fast amm sparsek inference\n");
-    fastamm.infer();
-    exit(0);
-  } 
-  
+
   if (massive) {
     FastAMM fastamm(env, network);
     info("+ running mmsb inference (with infset network option)\n");

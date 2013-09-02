@@ -47,40 +47,12 @@ SBM::SBM(Env &env, Network &network)
   info("alpha set to %s\n", _alpha.s().c_str());
   fflush(stdout);
 
-  _ones_prob = (double)_network.ones() / _total_pairs;
-  _zeros_prob = 1 - _ones_prob;
-
-  info("ones_prob = %.2f", _ones_prob);
-  Env::plog("ones_prob", _ones_prob);
-  Env::plog("zeros_prob", _zeros_prob);
-
-  if (env.eta_type == "default") {
-    env.eta0 = _total_pairs * _ones_prob / _k;
-    env.eta1 = _total_pairs * 1.0 / (_k * _k) - _env.eta0;
-    info("eta0 = %f\n", env.eta0);
-    info("eta1 = %f\n", env.eta1);
-    if (env.eta1 < 0)
-      env.eta1 = 1.0;
-  } else if (env.eta_type == "dense") {
-    env.eta0 = env.eta0_dense;
-    env.eta1 = env.eta1_dense;
-  } else if (env.eta_type == "sparse") {
-    env.eta0 = env.eta0_sparse;
-    env.eta1 = env.eta1_sparse;
-  } else if (env.eta_type == "regular") {
-    env.eta0 = env.eta0_regular;
-    env.eta1 = env.eta1_regular;
-  } else {
-    lerr("unknown eta_type\n");
-    assert(0);
-  }
-
   double **d = _eta.data();
   for (uint32_t i = 0; i < _k; ++i) {
     d[i][0] = env.eta0;
     d[i][1] = env.eta1;
   }
-  d[_k][0] = 0.0001;  // how to set inter-cluster rate prior?
+  d[_k][0] = 0.0001;
   d[_k][1] = 1.0;
 
   // random number generation

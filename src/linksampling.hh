@@ -32,6 +32,7 @@ public:
 private:
   void init_heldout();
   void load_heldout();
+  void write_groups();
 
   void set_heldout_sample(int s1);
   void set_precision_biased_sample(int s1);
@@ -40,17 +41,14 @@ private:
 
   void write_communities(MapVec &communities, string name);
   void auc();
+  void biased_auc();
+  void uniform_auc();
 
   void check_and_set_converged(uint32_t p);
   void prune();
   void assign_training_links();
   void compute_mean_indicators();
   void clear();
-
-#ifdef TRAINING_SAMPLE
-  void set_training_sample(int sz);
-  void training_likelihood(double &a, double &a0, double &a1);
-#endif
 
   void heldout_likelihood(double &a, double &a0, double &a1);
   void precision_likelihood();
@@ -91,7 +89,6 @@ private:
   SampleMap _heldout_map;
   SampleMap _precision_map;
   SampleMap _validation_map;
-  SampleMap _training_map;
   SampleMap _uniform_map;
   SampleMap _biased_map;
 
@@ -110,7 +107,6 @@ private:
   EdgeList _heldout_pairs;
   EdgeList _precision_pairs;
   EdgeList _validation_pairs;
-  EdgeList _training_pairs;
   EdgeList _uniform_pairs;
   EdgeList _biased_pairs;
   gsl_rng *_r;
@@ -139,7 +135,6 @@ private:
   FILE *_hf;
   FILE *_vf;
   FILE *_tf;
-  FILE *_trf;
   FILE *_hef;
   FILE *_pef;
   FILE *_vef;
