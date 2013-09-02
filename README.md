@@ -84,7 +84,7 @@ Some advanced tips
    65	 17 22 43 54
 
    The above line says node with id 65 is a member of communities 17,
-   22, 43, 54. The community ids are arbitrary.
+   22, 43, 54. The community ids are arbitrary. See detailed_readme.txt.
 
 3. *Comparing communities to results from other methods*
 
