@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=640" />
+
+    <link rel="stylesheet" href="stylesheets/core.css" media="screen"/>
+    <link rel="stylesheet" href="stylesheets/mobile.css" media="handheld, only screen and (max-device-width:640px)"/>
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
+
+    <script type="text/javascript" src="javascripts/modernizr.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="javascripts/headsmart.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $('#main_content').headsmart()
+      })
+    </script>
+    <title>Svinet by premgopalan</title>
+  </head>
+
+  <body>
+    <a id="forkme_banner" href="https://github.com/premgopalan/svinet">View on GitHub</a>
+    <div class="shell">
+
+      <header>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <h1>Svinet</h1>
+            <h2>This package implements algorithms for identifying overlapping communities in large undirected networks. The sampling based algorithms derive from stochastic variational inference under the (assortative) mixed-membership stochastic blockmodel. For details see the following reference:  http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf </h2>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+      </header>
+
+      <section id="downloads">
+        <span class="inner">
+          <a href="https://github.com/premgopalan/svinet/zipball/master" class="zip"><em>download</em> .ZIP</a><a href="https://github.com/premgopalan/svinet/tarball/master" class="tgz"><em>download</em> .TGZ</a>
+        </span>
+      </section>
+
+
+      <span class="banner-fix"></span>
+
+
+      <section id="main_content">
+        <h2>
+<a name="references" class="anchor" href="#references"><span class="octicon octicon-link"></span></a>References</h2>
+
+<p>Prem K. Gopalan, David M. Blei. Efficient discovery of overlapping communities 
+in massive networks. To appear in the Proceedings of the National Academy of 
+Sciences, 2013 (published ahead of print August 15, 2013, doi:10.1073/pnas.1221839110).</p>
+
+<p>Article: <a href="http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf">http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf</a>
+SI: <a href="http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental">http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental</a></p>
+
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Required libraries: gsl, gslblas, pthread</p>
+
+<p>On Linux/Unix run</p>
+
+<p>./configure
+ make; make install</p>
+
+<p>On Mac OS, the location of the required gsl, gslblas and pthread
+libraries may need to be specified:</p>
+
+<p>./configure LDFLAGS="-L/opt/local/lib" CPPFLAGS="-I/opt/local/include"
+ make; make install</p>
+
+<p>The binary 'svinet' will be installed in /usr/local/bin unless a
+different prefix is provided to configure. (See INSTALL.)</p>
+
+<h2>
+<a name="tutorial" class="anchor" href="#tutorial"><span class="octicon octicon-link"></span></a>Tutorial</h2>
+
+<ol>
+<li><p>Prepare your network data as a tab-separated file (e.g., network.txt)</p></li>
+<li>
+<p>Run the following command to find the overlapping communities: </p>
+
+<p>svinet -file network.txt -n 10000 -k 75 -link-sampling</p>
+</li>
+<li>
+<p>Run the following command to visualize the communities:</p>
+
+<p>cd output-dir; svinet -file ../network.txt  -n 10000 -k 75 -gml</p>
+</li>
+</ol><p>In step 2, "-n" specifies the number of nodes, "-k" specifies the
+number of communities and "-link-sampling" specifies the sampling
+method.</p>
+
+<p>Step 2 writes out the communities in communities.txt, the model fit in
+gamma.txt and lambda.txt and the mixed-memberships in groups.txt.</p>
+
+<p>Step 3 writes out a GML file (network.gml) that can be loaded into a
+tool, such as Gephi, to visualize the communities. Note that each node
+is colored by its most likely community in the visualization.</p>
+
+<h2>
+<a name="some-advanced-tips" class="anchor" href="#some-advanced-tips"><span class="octicon octicon-link"></span></a>Some advanced tips</h2>
+
+<ol>
+<li>
+<p><em>Estimating the number of communities</em></p>
+
+<p>Run the following command setting the number of communities equal
+to the number of nodes:</p>
+
+<p>svinet -file network.txt  -n 10000 -k 10000 -findk</p>
+
+<p>Estimate the number of communities using the following:</p>
+
+<p>wc -l n10000-k10000-mmsb-findk-uniform/communities.txt</p>
+
+<p>Specify this count as the number of communities in step 2 in the tutorial.</p>
+</li>
+<li>
+<p><em>Comparing communities to the ground truth</em></p>
+
+<p>If you have a text file with ground truth community labels, you can
+specify it in step 2 above, to compute a normalized mutual
+information score between the true communities and the inferred
+communities. Run the command in step 2 as follows:</p>
+
+<p>svinet -file network.txt -n 10000 -k 75 -link-sampling -nmi community.txt</p>
+
+<p>The format of the ground truth community file is as follows:</p>
+
+<p>node1    </p>
+
+<p>e.g., 
+65    17 22 43 54</p>
+
+<p>The above line says node with id 65 is a member of communities 17,
+22, 43, 54. The community ids are arbitrary. See detailed_readme.txt.</p>
+</li>
+<li>
+<p><em>Comparing communities to results from other methods</em></p>
+
+<p>We recommend running svinet with two settings of the
+<strong>link threshold</strong> as follows:</p>
+
+<p>svinet -file network.txt -n 10000 -k 75 -link-sampling -link-thresh 0.5</p>
+
+<p>svinet -file network.txt -n 10000 -k 75 -link-sampling -link-thresh 0.9</p>
+
+<p>For further details, see detailed_readme.txt or please email the authors.</p>
+</li>
+<li>
+<p><em>Set an alternate prior on community strengths</em></p>
+
+<p>The "fromdata" option sets a prior based on the network data on the
+community strengths and may result in better communities. By
+default, the prior on community strenths is a uniform distribution.</p>
+
+<p>svinet -file network.txt -n 10000 -k 75 -link-sampling -eta-type fromdata</p>
+</li>
+<li>
+<p><em>Other sampling methods</em></p>
+
+<p>See detailed_readme.txt.</p>
+</li>
+</ol><p><a href="https://bitdeli.com/free" title="Bitdeli Badge"><img src="https://d2weczhvl823v0.cloudfront.net/premgopalan/svinet/trend.png" alt="Bitdeli Badge"></a></p>
+      </section>
+
+      <footer>
+        <span class="ribbon-outer">
+          <span class="ribbon-inner">
+            <p>this project by <a href="https://github.com/premgopalan">premgopalan</a> can be found on <a href="https://github.com/premgopalan/svinet">GitHub</a></p>
+          </span>
+          <span class="left-tail"></span>
+          <span class="right-tail"></span>
+        </span>
+        <p>Generated with <a href="http://pages.github.com">GitHub Pages</a> using Merlot</p>
+        <span class="octocat"></span>
+      </footer>
+
+    </div>
+
+    
+  </body>
+</html>
