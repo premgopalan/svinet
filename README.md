@@ -1,5 +1,7 @@
-References
-----------
+SVINET implements sampling based algorithms that derive from
+stochastic variational inference under the (assortative)
+mixed-membership stochastic blockmodel. For details see the following
+references:
 
 Prem K. Gopalan, David M. Blei. Efficient discovery of overlapping communities 
 in massive networks. To appear in the Proceedings of the National Academy of 
