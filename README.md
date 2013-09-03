@@ -76,15 +76,17 @@ Some advanced tips
 
      svinet -file network.txt -n 10000 -k 75 -link-sampling -nmi community.txt
 
-   The format of the ground truth community file is as follows:
+   Each line of the ground truth community file is a tab-separated
+   list of integers including a node and its list of communities.
 
-   node1    <list of communities node1 is a member of>
+   node-id    list of communities the node is a member of
 
-   e.g., 
+   Example:
    65	 17 22 43 54
 
    The above line says node with id 65 is a member of communities 17,
-   22, 43, 54. The community ids are arbitrary. See detailed_readme.txt.
+   22, 43, 54. The community ids are arbitrary. See
+   detailed_readme.txt.
 
 3. *Comparing communities to results from other methods*
 
