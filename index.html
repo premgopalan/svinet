@@ -28,14 +28,18 @@
     <div id="content-wrapper">
       <div class="inner clearfix">
         <section id="main-content">
-          <p>SVINET implements sampling based algorithms that derive from stochastic variational inference under the (assortative) mixed-membership stochastic blockmodel. For details see the following references:</p>
+          <p>SVINET implements sampling based algorithms that derive from
+stochastic variational inference under the (assortative)
+mixed-membership stochastic blockmodel. For details see the following
+references:</p>
 
 <p>Prem K. Gopalan, David M. Blei. Efficient discovery of overlapping communities 
 in massive networks. To appear in the Proceedings of the National Academy of 
 Sciences, 2013 (published ahead of print August 15, 2013, doi:10.1073/pnas.1221839110).</p>
 
-<p>Article: <a href="http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf">http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf</a>
-SI: <a href="http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental">http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental</a></p>
+<p>Article: <a href="http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf">http://www.pnas.org/content/early/2013/08/14/1221839110.full.pdf</a></p>
+
+<p>SI: <a href="http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental">http://www.pnas.org/content/early/2013/08/14/1221839110/suppl/DCSupplemental</a></p>
 
 <h2>
 <a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
@@ -110,15 +114,17 @@ communities. Run the command in step 2 as follows:</p>
 
 <p>svinet -file network.txt -n 10000 -k 75 -link-sampling -nmi community.txt</p>
 
-<p>The format of the ground truth community file is as follows:</p>
+<p>Each line of the ground truth community file is a tab-separated
+list of integers including a node and its list of communities.</p>
 
-<p>node1    </p>
+<p>node-id    list of communities the node is a member of</p>
 
-<p>e.g., 
+<p>Example:
 65    17 22 43 54</p>
 
 <p>The above line says node with id 65 is a member of communities 17,
-22, 43, 54. The community ids are arbitrary. See detailed_readme.txt.</p>
+22, 43, 54. The community ids are arbitrary. See
+detailed_readme.txt.</p>
 </li>
 <li>
 <p><em>Comparing communities to results from other methods</em></p>
