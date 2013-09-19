@@ -33,16 +33,15 @@ private:
   void init_heldout();
   void load_heldout();
   void write_groups();
+  void svip_load_files();
+  void write_ranking_file();
 
   void set_heldout_sample(int s1);
-  void set_precision_biased_sample(int s1);
-  void set_precision_uniform_sample(int s1);
   void set_validation_sample(int sz);
 
+  void set_precision_biased_sample(int s1);
+  void set_precision_uniform_sample(int s1);
   void write_communities(MapVec &communities, string name);
-  void auc();
-  void biased_auc();
-  void uniform_auc();
 
   void check_and_set_converged(uint32_t p);
   void prune();
@@ -89,8 +88,7 @@ private:
   SampleMap _heldout_map;
   SampleMap _precision_map;
   SampleMap _validation_map;
-  SampleMap _uniform_map;
-  SampleMap _biased_map;
+
 
   MapVec _communities;
   uint32_t _n;
@@ -133,6 +131,7 @@ private:
   Array _Elogf;
 
   FILE *_hf;
+  FILE *_pf;
   FILE *_vf;
   FILE *_tf;
   FILE *_hef;
@@ -154,6 +153,7 @@ private:
   Array _s1, _s2, _s3, _sum;
   uint32_t _nlinks;
   Array _training_links;
+  uArray _ignore_npairs;
   bool _annealing_phase;
 };
 
@@ -295,32 +295,27 @@ LinkSampling::edge_ok(const Edge &e) const
 {
   if (e.first == e.second)
     return false;
-  
-  const SampleMap::const_iterator u = _heldout_map.find(e);
-  if (u != _heldout_map.end())
-    return false;
-  
-  if (!_env.single_heldout_set) {
-    const SampleMap::const_iterator w = _validation_map.find(e);
-    if (w != _validation_map.end())
-      return false;
-  }
 
-  if (_env.create_test_precision_sets) {
+  if (_env.svip_project_mode) {
+    const SampleMap::const_iterator u = _heldout_map.find(e);
+    if (u != _heldout_map.end())
+      return false;
+
     const SampleMap::const_iterator w = _precision_map.find(e);
     if (w != _precision_map.end()) 
       return false;
+  } else {
+    const SampleMap::const_iterator u = _heldout_map.find(e);
+    if (u != _heldout_map.end())
+      return false;
+    
+    if (!_env.single_heldout_set) {
+      const SampleMap::const_iterator w = _validation_map.find(e);
+      if (w != _validation_map.end())
+	return false;
+    }
   }
-
-  if (_env.load_test_sets) {
-    const SampleMap::const_iterator u1 = _uniform_map.find(e);
-    if (u1 != _uniform_map.end()) 
-      return false;    
-    const SampleMap::const_iterator b1 = _biased_map.find(e);
-    if (b1 != _biased_map.end()) 
-      return false;    
-  }
-
+    
   return true;
 }
 

@@ -66,7 +66,7 @@ public:
   bool relevant_node_ppc(uint32_t i) const;
   void set_neighborhood_sets();
   void load_neighborhood_sets();
-
+  void svip_load(string fname, SampleMap &mp, uArray &ignore_npairs);
   void load_ground_truth();
   void write_gt_communities();
   void load_communities();

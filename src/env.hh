@@ -69,7 +69,8 @@ public:
       double rand_seed, 
       double link_thresh, uint32_t lt_min_deg,
       bool init_comm, string init_comm_fname,
-      bool link_sampling, bool gml, bool findk);
+      bool link_sampling, bool svip_project_mode, 
+      bool gml, bool findk);
 
   ~Env() { fclose(_plogf); }
 
@@ -184,6 +185,7 @@ public:
   string init_communities_fname;
   bool compute_auc;
   bool link_sampling;
+  bool svip_project_mode;
 
   uint64_t total_pairs;
   double ones_prob;
@@ -296,7 +298,8 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
 	 double rand_seed,
 	 double link_thresh, uint32_t lt_min_deg,
 	 bool init_comm, string init_comm_fname,
-	 bool link_sampling_opt, bool gml, bool findk)
+	 bool link_sampling_opt, bool svip_mode,
+	 bool gml, bool findk)
   : n(N),
     k(K),
     t(2),
@@ -473,7 +476,8 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     use_init_communities(init_comm),
     init_communities_fname(init_comm_fname),
     compute_auc(false),
-    link_sampling(link_sampling_opt)
+    link_sampling(link_sampling_opt),
+    svip_project_mode(svip_mode)
 {
   assert (!(batch && (strat || rnode || rpair)));
 
@@ -607,6 +611,7 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     plog("hol_location", hol_location);
     plog("reportfreq", reportfreq);
     plog("eta_type", eta_type);
+    plog("svip_project_mode", svip_project_mode);
   }
 
   if (!gen && !ppc) {

@@ -104,13 +104,14 @@ Network::read(string s)
     debug("distinct nodes = %d\n", (int)_id2seq.size());
   }
 
-  if (_curr_seq != _env.n) {
-    _single_nodes = _env.n - _curr_seq;
-    printf("n = %d, curr_seq = %d\n", _env.n, _curr_seq);
-    printf("+ Creating ids for %d single nodes\n", _env.n - _curr_seq);
-    for (uint32_t c = _curr_seq, k = 0; c < _env.n; ++c, ++k)
-      add(SINGLE_NODE_START_ID + k);
-  }
+  if (!_env.svip_project_mode)
+    if (_curr_seq != _env.n) {
+      _single_nodes = _env.n - _curr_seq;
+      printf("n = %d, curr_seq = %d\n", _env.n, _curr_seq);
+      printf("+ Creating ids for %d single nodes\n", _env.n - _curr_seq);
+      for (uint32_t c = _curr_seq, k = 0; c < _env.n; ++c, ++k)
+	add(SINGLE_NODE_START_ID + k);
+    }
   fprintf(stdout, "\n+ Done reading network\n");
   fflush(stdout);
 
@@ -772,4 +773,41 @@ Network::load_gt_groups()
     fprintf(g, "%d\t%s\n", i->first, i->second.c_str());
   fclose(g);
   return 0;
+}
+
+void
+Network::svip_load(string fname, SampleMap &mp, uArray &ignore_npairs)
+{
+  FILE *f = fopen(fname.c_str(), "r");
+  uint32_t n = 0;
+  uint32_t a, b;
+
+  while (!feof(f)) {
+    if (fscanf(f, "%d"DELIM"%d\n", &a, &b) < 0) {
+      fprintf(stderr, "error: cannot test file %s:%s\n", 
+	      fname.c_str(), strerror(errno));
+      exit(-1);
+    }
+    
+    IDMap::const_iterator i1 = _id2seq.find(a);
+    if (i1 == _id2seq.end() && !add(a))
+      assert(0);
+
+    IDMap::const_iterator i2 = _id2seq.find(b);
+    if (i2 == _id2seq.end() && !add(b))
+      assert(0);
+
+    uint32_t p = _id2seq[a];
+    uint32_t q = _id2seq[b];
+    
+    Edge e(i1->second,i2->second);
+    Network::order_edge(_env, e);
+    mp[e] = true;
+    ++n;
+
+    ignore_npairs[p]++;
+    ignore_npairs[q]++;
+  }
+  Env::plog("svip: loaded training pairs:", n);
+  fclose(f);
 }

@@ -60,6 +60,7 @@ main(int argc, char **argv)
   bool batch = false;
   bool online = true;
   bool link_sampling = false;
+  bool svip_mode = false;
   bool nodelay = true;
   bool load = false; 
   bool hol_load = false;
@@ -229,6 +230,9 @@ main(int argc, char **argv)
       link_thresh = atof(argv[++i]);
     } else if (strcmp(argv[i], "-lt-min-deg") == 0) {
       lt_min_deg = atof(argv[++i]);
+    } else if (strcmp(argv[i], "-svip-mode") == 0) {
+      svip_mode = true;
+      datfname = string("train.tsv");
     } else if (strcmp(argv[i], "-init-communities") == 0) {
       init_comm = true;
       init_comm_fname = string(argv[++i]);
@@ -254,7 +258,7 @@ main(int argc, char **argv)
 	  max_iterations, use_validation_stop, rand_seed,
 	  link_thresh, lt_min_deg,
 	  init_comm, init_comm_fname,
-	  link_sampling, gml, findk);
+	  link_sampling, svip_mode, gml, findk);
 
   env_global = &env;
   Network network(env);
