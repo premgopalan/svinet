@@ -66,7 +66,7 @@ public:
   bool relevant_node_ppc(uint32_t i) const;
   void set_neighborhood_sets();
   void load_neighborhood_sets();
-  void svip_load(string fname, SampleMap &mp, uArray &ignore_npairs);
+  void svip_load(string fname, CountMap &mp, uArray &ignore_npairs);
   void load_ground_truth();
   void write_gt_communities();
   void load_communities();
@@ -80,6 +80,8 @@ public:
 
   const IDMap &id2seq() const { return _id2seq; }
   const IDMap &seq2id() const { return _seq2id; }
+
+  uint32_t curr_seq() const  { return _curr_seq; }
 
   const StrMap &str2id() const { return _str2id; }
   const StrMapInv &id2str() const { return _id2str; }
@@ -134,8 +136,10 @@ Network::n() const
 inline bool
 Network::add(uint32_t id)
 {
-  if (_curr_seq >= _env.n)
+  if (_curr_seq >= _env.n) {
+    lerr("curr_seq:%d, env.n:%d", _curr_seq, _env.n);
     return false;
+  }
 
   _id2seq[id] = _curr_seq;
   _seq2id[_curr_seq] = id;

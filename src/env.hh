@@ -58,7 +58,7 @@ public:
       double hol_ratio,
       bool adamic,
       uint32_t scale,
-      bool dis, bool force_overwrite_dir, string dfname,
+      bool dis, bool force_overwrite_dir, string dfname, string dirname,
       bool ppc, bool run_gap, bool gen, string label,
       uint32_t nthrs, uint32_t itype, string etype,
       bool nmi, string ground_truth_fname, uint32_t rfreq,
@@ -154,6 +154,7 @@ public:
 
   bool terminate;
   string datfname;
+  string datdir;
 
   // debug
   bool deterministic;
@@ -288,6 +289,7 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
 	 bool adamic,
 	 uint32_t scale,
 	 bool dis, bool force_overwrite_dir, string dfname,
+	 string dirname,
 	 bool ppc, bool gap, bool gen1, string lbl,
 	 uint32_t nthrs, uint32_t itype, string etype,
 	 bool nmival, string gfname, uint32_t rfreq,
@@ -439,6 +441,7 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     terminate(false),
 
     datfname(dfname),
+    datdir(dirname),
     deterministic(false),
 
     disjoint(dis),
@@ -563,11 +566,13 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
       sa << "regular";
   }
   prefix = gml ? "gml" : sa.str();
+
+  printf("prefix = %s\n", prefix.c_str());
+  fflush(stdout);
   level = Logger::INFO;
 
   if (!ppc) {
-    fprintf(stdout, "+ Output directory: %s\n", prefix.c_str());
-    fflush(stdout);
+    printf("\n+ Output directory: %s\n", prefix.c_str());
     assert (Logger::initialize(prefix, "infer.log",
 			       force_overwrite_dir, level) >= 0);
     info("prefix = %s", prefix.c_str());

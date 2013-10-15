@@ -149,6 +149,7 @@ LinkSampling::LinkSampling(Env &env, Network &network)
 
   double a, b, c;
   heldout_likelihood(a, b, c);
+  compute_test_likelihood();
   validation_likelihood(a, b, c);
 
   info("+ link sampling init end\n");
@@ -358,8 +359,9 @@ LinkSampling::set_precision_uniform_sample(int s)
 void
 LinkSampling::svip_load_files()
 {
-  _network.svip_load("test.tsv", _precision_map, _ignore_npairs);     // used in computing precision
-  _network.svip_load("validation.tsv", _heldout_map, _ignore_npairs); // used for assessing convergence
+  _network.svip_load(_env.datdir + "/test.tsv", _precision_map, _ignore_npairs);
+  _network.svip_load(_env.datdir + "/validation.tsv", _heldout_map, _ignore_npairs);
+  Env::plog("curr_seq after all files loaded:", _network.curr_seq());
 }
 
 
@@ -390,13 +392,14 @@ LinkSampling::init_lambda()
 void
 LinkSampling::init_gamma2()
 {
-  printf("calling init_gamma2\n");
-  fflush(stdout);
   Array phi(_k);
   for (uint32_t p = 0; p < _n; ++p) {
 
     const vector<uint32_t> *edges = _network.get_edges(p);
-    for (uint32_t r = 0; r < edges->size(); ++r) {
+    if (!edges || !edges->size())
+      lerr("node %d has no links!");
+
+    for (uint32_t r = 0; edges && r < edges->size(); ++r) {
       uint32_t q = (*edges)[r];
 	
       if (p >= q)
@@ -626,7 +629,7 @@ LinkSampling::infer()
       if (!_env.accuracy) {
 	Edge e(p,q);
 	Network::order_edge(_env,e);
-	const SampleMap::const_iterator u = _heldout_map.find(e);
+	const CountMap::const_iterator u = _heldout_map.find(e);
 	assert (u == _heldout_map.end());
       }
       
@@ -956,15 +959,19 @@ LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
   uint32_t k = 0, kzeros = 0, kones = 0;
   double s = .0, szeros = 0, sones = 0;
   uint32_t sz = _heldout_map.size();
-  for (SampleMap::const_iterator i = _heldout_map.begin();
+  for (CountMap::const_iterator i = _heldout_map.begin();
        i != _heldout_map.end(); ++i) {
     const Edge &e = i->first;
     uint32_t p = e.first;
     uint32_t q = e.second;
     assert (p != q);
-
-    yval_t y = _network.y(p,q);
+    
+    yval_t y = i->second;
     double u = edge_likelihood(p,q,y);
+    
+    //printf("computing hol for %d,%d: %d --> %.5f\n", p, q, y, u);
+    //fflush(stdout);
+
     s += u;
     k += 1;
     if (y) {
@@ -986,8 +993,8 @@ LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
 	  nshol);
   fflush(_hf);
 
-  a = nshol;
-
+  a = nshol; //sones / kones;
+  
   bool stop = false;
   int why = -1;
   if (_iter > 10) {
@@ -1010,12 +1017,12 @@ LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
       _max_t = at0;
     }
     
-    if (_nh > 2) { // be robust to small fluctuations in predictive likelihood
+    if (_nh > 3) { // be robust to small fluctuations in predictive likelihood
       why = 1;
       stop = true;
     }
   }
-  _prev_h = nshol;
+  _prev_h = nshol; // a
   FILE *f = fopen(Env::file_str("/max.txt").c_str(), "w");
   fprintf(f, "%d\t%d\t%.5f\t%.5f\t%.5f\t%.5f\t%d\n", 
 	  _iter, duration(), 
@@ -1052,19 +1059,19 @@ LinkSampling::compute_test_likelihood()
 
 
 void
-LinkSampling::test_likelihood(const SampleMap &m, FILE *outf)
+LinkSampling::test_likelihood(const CountMap &m, FILE *outf)
 {
   if (_env.accuracy)
     return;
   uint32_t k = 0, kzeros = 0, kones = 0;
   double s = .0, szeros = 0, sones = 0;
-  for (SampleMap::const_iterator i = m.begin(); i != m.end(); ++i) {
+  for (CountMap::const_iterator i = m.begin(); i != m.end(); ++i) {
     const Edge &e = i->first;
     uint32_t p = e.first;
     uint32_t q = e.second;
     assert (p != q);
 
-    yval_t y = _network.y(p,q);
+    yval_t y = i->second;
     double u = edge_likelihood(p,q,y);
     s += u;
     k += 1;
@@ -1095,7 +1102,7 @@ LinkSampling::write_ranking_file()
   uint32_t c = 0;
   NodeMap sampled_nodes;
   FILE *f = fopen(Env::file_str("/ranking.tsv").c_str(), "w");
-  for (SampleMap::const_iterator i = _precision_map.begin();
+  for (CountMap::const_iterator i = _precision_map.begin();
        i != _precision_map.end(); ++i) {
     
     const Edge &e = i->first;
@@ -1107,41 +1114,62 @@ LinkSampling::write_ranking_file()
     sampled_nodes[q] = true;
   }
 
+  uint32_t ntest_pairs = 0;
+  printf("\n+ Precision  map size = %d\n", _precision_map.size());
+  printf("\n+ Writing ranking file for %d nodes in test file\n", 
+	 sampled_nodes.size());
+  fflush(stdout);
+
   double mhits10 = 0, mhits100 = 0;
   uint32_t total_users = 0;
-  KVArray mlist(_n);  
   for (NodeMap::const_iterator itr = sampled_nodes.begin();
        itr != sampled_nodes.end(); ++itr) {
+    KVArray mlist(_n);  
     uint32_t n = itr->first;
     for (uint32_t m = 0; m < _n; ++m) {
-      if (n == m)
-	continue;
       
+      if (n == m) {
+	mlist[m].first = m;
+	mlist[m].second = -1;
+	continue;
+      }
+
       Edge e(n,m);
       Network::order_edge(_env, e);
       //
       // check that this pair e is either a test link or a 0 in training
       // (however, validation links are also a 0 in training; we must skip them)
       //
-      const SampleMap::const_iterator w = _precision_map.find(e);
-      if (w == _precision_map.end() || _network.y(n,m) == 0) {
+      const CountMap::const_iterator w = _precision_map.find(e);
+      if (w != _precision_map.end()) { 
+	//(w == _precision_map.end() && _network.y(n,m) == 0)) {
 	
-	const SampleMap::const_iterator v = _heldout_map.find(e);
-	if (v != _heldout_map.end())
+	const CountMap::const_iterator v = _heldout_map.find(e);
+	if (v != _heldout_map.end()) {
+	  mlist[m].first = m;
+	  mlist[m].second = -1;
 	  continue;
+	}
 
-	yval_t y = _network.y(n,m);
+	yval_t y = (w != _precision_map.end()) ? w->second : 0;
 	double u = link_prob(n,m);
 	mlist[m].first = m;
 	mlist[m].second = u;
+	ntest_pairs++;
+      } else {
+	mlist[m].first = m;
+	mlist[m].second = -1;
       }
     }
     uint32_t hits10 = 0, hits100 = 0;
     mlist.sort_by_value();
-    for (uint32_t j = 0; j < mlist.size() && j < topN_by_user; ++j) {
+    for (uint32_t j = 0; j < mlist.size(); ++j) {
       KV &kv = mlist[j];
       uint32_t m = kv.first;
       double pred = kv.second;
+
+      if (pred < 0)
+	continue;
 
       uint32_t m2 = 0, n2 = 0;
 
@@ -1149,34 +1177,25 @@ LinkSampling::write_ranking_file()
       assert (it != _network.seq2id().end());
 	
       IDMap::const_iterator mt = _network.seq2id().find(m);
-      assert (mt == _network.seq2id().end());
+      assert (mt != _network.seq2id().end());
       
       m2 = mt->second;
       n2 = it->second;
 
+      //printf("n = %d (%d), m = %d (%d), pred = %.5f \n", n2, n, m2, m, pred);
       yval_t  actual_value = 0;
       Edge e(n,m);
       Network::order_edge(_env, e);
-      const SampleMap::const_iterator w = _precision_map.find(e);
+      const CountMap::const_iterator w = _precision_map.find(e);
       if (w != _precision_map.end())
-	actual_value = 1;
+	actual_value = w->second;
       fprintf(f, "%d\t%d\t%.5f\t%d\n", n2, m2, pred, actual_value);
-
-      if (j < 10) {
-	hits10++;
-	hits100++;
-      } else if (j < 100) {
-	hits100++;
-      }
     }
-    mhits10 += (double)hits10 / 10;
-    mhits100 += (double)hits100 / 100;
     total_users++;
+    printf("\r done %d", total_users);
   }
+  printf("\n total test pairs = %d\n", ntest_pairs);
   fclose(f);
-  fprintf(_pf, "%.5f\t%.5f\n", 
-	  (double)mhits10 / total_users, 
-	  (double)mhits100 / total_users);
 }
 
 void
@@ -1187,14 +1206,14 @@ LinkSampling::validation_likelihood(double &av, double &av0, double &av1) const
 
   uint32_t k = 0, kzeros = 0, kones = 0;
   double s = .0, szeros = 0, sones = 0;
-  for (SampleMap::const_iterator i = _validation_map.begin();
+  for (CountMap::const_iterator i = _validation_map.begin();
        i != _validation_map.end(); ++i) {
     const Edge &e = i->first;
     uint32_t p = e.first;
     uint32_t q = e.second;
     assert (p != q);
 
-    yval_t y = _network.y(p,q);
+    yval_t y = i->second;
     double u = edge_likelihood(p,q,y);
     s += u;
     k += 1;

@@ -18,7 +18,7 @@ Logger::initialize(string prefix, string name, bool force,
       return -1;
     
     _initialized = true;
-    info("Setting log to %s", name.c_str());
+    lerr("Setting log to %s", name.c_str());
   }
   return 0;
 }

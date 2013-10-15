@@ -48,6 +48,7 @@ main(int argc, char **argv)
   bool run_gap = false;
   bool force_overwrite_dir = true;
   string datfname = "network.dat";
+  string datdir = ".";
   bool gen = false, ppc = false, lcstats = false;
   bool gml = false;
   bool findk = false;
@@ -127,6 +128,12 @@ main(int argc, char **argv)
 	exit(-1);
       }
       datfname = string(argv[++i]);
+    } else if (strcmp(argv[i], "-dir") == 0) {
+      if (i + 1 > argc - 1) {
+	fprintf(stderr, "+ insufficient arguments!\n");
+	exit(-1);
+      }
+      datdir = string(argv[++i]);
     } else if (strcmp(argv[i], "-ppc") == 0) {
       ppc = true;
     } else if (strcmp(argv[i], "-lcstats") == 0) {
@@ -232,7 +239,6 @@ main(int argc, char **argv)
       lt_min_deg = atof(argv[++i]);
     } else if (strcmp(argv[i], "-svip-mode") == 0) {
       svip_mode = true;
-      datfname = string("train.tsv");
     } else if (strcmp(argv[i], "-init-communities") == 0) {
       init_comm = true;
       init_comm_fname = string(argv[++i]);
@@ -242,6 +248,9 @@ main(int argc, char **argv)
 
   assert (!(batch && online));
 
+  if (svip_mode)
+    datfname = datdir + "/train.tsv";
+
   Env env(n, k, massive, single, batch, stratified, 
 	  nodelay, rpair, rnode, 
 	  load, location, 
@@ -249,7 +258,7 @@ main(int argc, char **argv)
 	  hol_ratio,
 	  adamic_adar,
 	  scale, disjoint,
-	  force_overwrite_dir, datfname, 
+	  force_overwrite_dir, datfname, datdir,
 	  ppc, run_gap, gen, label, nthreads, itype, eta_type,
 	  nmi, ground_truth_fname, rfreq, 
 	  accuracy, stopthresh, infthresh, 
@@ -285,7 +294,8 @@ main(int argc, char **argv)
 	  network.n(), 
 	  network.ones(), network.singles());
 
-  env.n = network.n() - network.singles();
+  if (!env.svip_project_mode)
+    env.n = network.n() - network.singles();
 
   if (!gml) {
     info("+ logging and assessing convergence "

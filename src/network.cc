@@ -114,6 +114,8 @@ Network::read(string s)
     }
   fprintf(stdout, "\n+ Done reading network\n");
   fflush(stdout);
+  printf("curr_seq after train:%d", _curr_seq);
+  fflush(stdout);
 
   set_env_variables();
   set_avg_deg();
@@ -776,38 +778,52 @@ Network::load_gt_groups()
 }
 
 void
-Network::svip_load(string fname, SampleMap &mp, uArray &ignore_npairs)
+Network::svip_load(string fname, CountMap &mp, uArray &ignore_npairs)
 {
   FILE *f = fopen(fname.c_str(), "r");
+  if (!f) {
+    lerr("cannot open file %s:%s", fname.c_str(), strerror(errno));
+    exit(-1);
+  }
+
   uint32_t n = 0;
-  uint32_t a, b;
+  uint32_t a, b, y;
 
   while (!feof(f)) {
-    if (fscanf(f, "%d"DELIM"%d\n", &a, &b) < 0) {
+    if (fscanf(f, "%d"DELIM"%d"DELIM"%d\n", &a, &b, &y) < 0) {
       fprintf(stderr, "error: cannot test file %s:%s\n", 
 	      fname.c_str(), strerror(errno));
       exit(-1);
     }
     
     IDMap::const_iterator i1 = _id2seq.find(a);
-    if (i1 == _id2seq.end() && !add(a))
+    if (i1 == _id2seq.end() && !add(a)) {
+      lerr("found node %d in file %s", a, fname.c_str());
       assert(0);
+    }
 
     IDMap::const_iterator i2 = _id2seq.find(b);
-    if (i2 == _id2seq.end() && !add(b))
+    if (i2 == _id2seq.end() && !add(b)) {
+      lerr("found node %d in file %s", b, fname.c_str());
       assert(0);
+    }
 
     uint32_t p = _id2seq[a];
     uint32_t q = _id2seq[b];
     
     Edge e(i1->second,i2->second);
     Network::order_edge(_env, e);
-    mp[e] = true;
+    mp[e] = y;
     ++n;
+
+    //printf("edge %d, %d -> %d\n", e.first, e.second, y);
+    //fflush(stdout);
 
     ignore_npairs[p]++;
     ignore_npairs[q]++;
   }
-  Env::plog("svip: loaded training pairs:", n);
+  char buf[512];
+  sprintf(buf, "svip: loaded %s pairs:", fname.c_str());
+  Env::plog(buf, mp.size());
   fclose(f);
 }

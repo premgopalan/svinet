@@ -58,7 +58,7 @@ private:
   void get_random_edge(bool link, Edge &e) const;
   void do_on_stop();
   void compute_test_likelihood();
-  void test_likelihood(const SampleMap &m, FILE *outf);
+  void test_likelihood(const CountMap &m, FILE *outf);
 
   void init_gamma();
   void init_gamma2();
@@ -85,9 +85,9 @@ private:
   Network &_network;
 
   SampleMap _sample_map;
-  SampleMap _heldout_map;
-  SampleMap _precision_map;
-  SampleMap _validation_map;
+  CountMap _heldout_map;
+  CountMap _precision_map;
+  CountMap _validation_map;
 
 
   MapVec _communities;
@@ -175,6 +175,8 @@ LinkSampling::set_dir_exp(const Matrix &u, Matrix &exp)
     for (uint32_t j = 0; j < u.n(); ++j) 
       s += d[i][j];
     //debug("set_dir_exp: s = %f\n",s);
+    if (s == 0)
+      lerr("s == 0 for node %d\n", i);
     double psi_sum = gsl_sf_psi(s);
     for (uint32_t j = 0; j < u.n(); ++j) {
       //debug("set_dir_exp: d[i][j] = %f\n",d[i][j]);
@@ -297,20 +299,20 @@ LinkSampling::edge_ok(const Edge &e) const
     return false;
 
   if (_env.svip_project_mode) {
-    const SampleMap::const_iterator u = _heldout_map.find(e);
+    const CountMap::const_iterator u = _heldout_map.find(e);
     if (u != _heldout_map.end())
       return false;
 
-    const SampleMap::const_iterator w = _precision_map.find(e);
+    const CountMap::const_iterator w = _precision_map.find(e);
     if (w != _precision_map.end()) 
       return false;
   } else {
-    const SampleMap::const_iterator u = _heldout_map.find(e);
+    const CountMap::const_iterator u = _heldout_map.find(e);
     if (u != _heldout_map.end())
       return false;
     
     if (!_env.single_heldout_set) {
-      const SampleMap::const_iterator w = _validation_map.find(e);
+      const CountMap::const_iterator w = _validation_map.find(e);
       if (w != _validation_map.end())
 	return false;
     }
