@@ -239,8 +239,8 @@ Network::set_env_variables()
     if (_env.eta1 <= 0)
       _env.eta1 = 1.0;    
   } else if (_env.eta_type == "uniform") {
-    _env.eta0 = 1;
-    _env.eta1 = 1;
+    _env.eta0 = 0.001;
+    _env.eta1 = 0.001;
   } else if (_env.eta_type == "sparse") {
     _env.eta0 = _env.eta0_sparse;
     _env.eta1 = _env.eta1_sparse;

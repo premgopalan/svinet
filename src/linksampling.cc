@@ -31,7 +31,8 @@ LinkSampling::LinkSampling(Env &env, Network &network)
    _nlinks(0),
    _training_links(_n),
    _ignore_npairs(_n),
-   _annealing_phase(true)
+   _annealing_phase(true),
+   _save_ranking_file(false)
 {
   info("+ link sampling init begin\n");
   if (env.undirected)
@@ -361,6 +362,7 @@ LinkSampling::svip_load_files()
 {
   _network.svip_load(_env.datdir + "/test.tsv", _precision_map, _ignore_npairs);
   _network.svip_load(_env.datdir + "/validation.tsv", _heldout_map, _ignore_npairs);
+  load_nodes_for_precision();
   Env::plog("curr_seq after all files loaded:", _network.curr_seq());
 }
 
@@ -798,8 +800,11 @@ LinkSampling::infer()
     if (_iter % _env.reportfreq == 0) {
       double a, b, c;
       heldout_likelihood(a, b, c);
-      if (_env.svip_project_mode)
-	compute_test_likelihood();
+      if (_iter % 100 == 0) {
+	write_ranking_file();
+	if (_env.svip_project_mode)
+	  compute_test_likelihood();
+      }
       log_communities();
     }
     _iter++;
@@ -814,7 +819,9 @@ LinkSampling::do_on_stop()
   save_model();
   write_groups();
   compute_test_likelihood();
+  _save_ranking_file = false;
   write_ranking_file();
+  _save_ranking_file = true;
 }
 
 void
@@ -1096,34 +1103,86 @@ LinkSampling::test_likelihood(const CountMap &m, FILE *outf)
 }
 
 void
+LinkSampling::load_nodes_for_precision()
+{
+  string fname = _env.datdir + "/test_users.tsv";
+  FILE *f = fopen(fname.c_str(), "r");
+  if (!f) {
+    lerr("cannot open query nodes file :%s", strerror(errno));
+    exit(-1);
+  }
+  size_t nbytes = 10 * 1024 * 1024;
+  char *s = new char[nbytes];
+  char *my_string = (char *) malloc (nbytes);
+  size_t bytes_read = 0;
+
+  const IDMap &mp = _network.id2seq();
+  uint32_t nread = 0;
+  while (!feof(f)) {
+    bytes_read = getline(&my_string, &nbytes, f);
+    if (bytes_read <= 0)
+      break;
+
+    if (sscanf(my_string, "%[^\n]s\n", s) < 0) {
+      printf("error: cannot read query nodes file\n");
+      exit(-1);
+    }
+
+    char *e;
+    char *p;
+    long u = 0;
+    for (p = s; ; p = e) {
+      u = strtol(p, &e, 10);
+      if (p == e)
+	break;
+
+      IDMap::const_iterator pi = mp.find(u);
+      if (pi == mp.end()) {
+	printf("ERROR: node %d not found\n", u);
+	fflush(stdout);
+      }
+      assert (pi != mp.end());
+      _sampled_nodes[pi->second] = true;
+    }
+    nread++;
+  }
+  delete[] s;
+  fclose(f);
+  Env::plog("read %d query nodes", nread);
+  FILE *g = fopen(Env::file_str("/saved_querynodes.txt").c_str(), "w");
+  write_nodemap(g, _sampled_nodes);
+  fclose(g);
+}
+
+void
+LinkSampling::write_nodemap(FILE *f, NodeMap &mp)
+{
+  for (NodeMap::const_iterator i = mp.begin(); i != mp.end(); ++i) {
+    uint32_t p = i->first;
+    const IDMap &m = _network.seq2id();
+    IDMap::const_iterator pi = m.find(p);
+    fprintf(f, "%d\n", pi->second);
+  }
+  fflush(f);
+}
+
+void
 LinkSampling::write_ranking_file()
 {
   uint32_t topN_by_user = 100;
   uint32_t c = 0;
-  NodeMap sampled_nodes;
+
   FILE *f = fopen(Env::file_str("/ranking.tsv").c_str(), "w");
-  for (CountMap::const_iterator i = _precision_map.begin();
-       i != _precision_map.end(); ++i) {
-    
-    const Edge &e = i->first;
-    uint32_t p = e.first;
-    uint32_t q = e.second;
-    assert (p != q);
-
-    sampled_nodes[p] = true;
-    sampled_nodes[q] = true;
-  }
-
   uint32_t ntest_pairs = 0;
-  printf("\n+ Precision  map size = %d\n", _precision_map.size());
-  printf("\n+ Writing ranking file for %d nodes in test file\n", 
-	 sampled_nodes.size());
+  printf("\n+ Precision  map size = %ld\n", _precision_map.size());
+  printf("\n+ Writing ranking file for %ld nodes in query file\n", 
+	 _sampled_nodes.size());
   fflush(stdout);
 
-  double mhits10 = 0, mhits100 = 0;
+  double mhits10 = 0, mhits100 = 0, mhits50 = 0;
   uint32_t total_users = 0;
-  for (NodeMap::const_iterator itr = sampled_nodes.begin();
-       itr != sampled_nodes.end(); ++itr) {
+  for (NodeMap::const_iterator itr = _sampled_nodes.begin();
+       itr != _sampled_nodes.end(); ++itr) {
     KVArray mlist(_n);  
     uint32_t n = itr->first;
     for (uint32_t m = 0; m < _n; ++m) {
@@ -1141,8 +1200,8 @@ LinkSampling::write_ranking_file()
       // (however, validation links are also a 0 in training; we must skip them)
       //
       const CountMap::const_iterator w = _precision_map.find(e);
-      if (w != _precision_map.end()) { 
-	//(w == _precision_map.end() && _network.y(n,m) == 0)) {
+      if (w != _precision_map.end() || 
+	  (w == _precision_map.end() && _network.y(n,m) == 0)) {
 	
 	const CountMap::const_iterator v = _heldout_map.find(e);
 	if (v != _heldout_map.end()) {
@@ -1161,9 +1220,9 @@ LinkSampling::write_ranking_file()
 	mlist[m].second = -1;
       }
     }
-    uint32_t hits10 = 0, hits100 = 0;
+    uint32_t hits10 = 0, hits100 = 0, hits50 = 0;
     mlist.sort_by_value();
-    for (uint32_t j = 0; j < mlist.size(); ++j) {
+    for (uint32_t j = 0; j < topN_by_user && j < mlist.size(); ++j) {
       KV &kv = mlist[j];
       uint32_t m = kv.first;
       double pred = kv.second;
@@ -1187,15 +1246,36 @@ LinkSampling::write_ranking_file()
       Edge e(n,m);
       Network::order_edge(_env, e);
       const CountMap::const_iterator w = _precision_map.find(e);
-      if (w != _precision_map.end())
+      if (w != _precision_map.end()) {
 	actual_value = w->second;
-      fprintf(f, "%d\t%d\t%.5f\t%d\n", n2, m2, pred, actual_value);
+	if (j < 10) {
+	  hits10++;
+	  hits50++;
+	  hits100++;
+	} else if (j < 50) {
+	  hits50++;
+	  hits100++;
+	} else if (j < 100)
+	  hits100++;
+      }
+      if (_save_ranking_file)
+	fprintf(f, "%d\t%d\t%.5f\t%d\t%.5f\n", n2, m2, pred, 
+		actual_value, edge_likelihood(n,m,actual_value));
     }
+    mhits10 += (double)hits10 / 10;
+    mhits50 += (double)hits50 / 50;
+    mhits100 += (double)hits100 / 100;
     total_users++;
-    printf("\r done %d", total_users);
+    //printf("\r done %d", total_users);
   }
-  printf("\n total test pairs = %d\n", ntest_pairs);
-  fclose(f);
+  //printf("\n total test pairs = %d\n", ntest_pairs);
+  if (_save_ranking_file)
+    fclose(f);
+  fprintf(_pf, "%.5f\t%.5f\t%.5f\n", 
+	  (double)mhits10 / total_users, 
+	  (double)mhits50 / total_users, 
+	  (double)mhits100 / total_users);
+  fflush(_pf);
 }
 
 void

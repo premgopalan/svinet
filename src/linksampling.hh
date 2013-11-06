@@ -80,6 +80,8 @@ private:
 
   void get_Epi(uint32_t n, Array &Epi);
   uint32_t most_likely_group(uint32_t p);
+  void load_nodes_for_precision();
+  void write_nodemap(FILE *f, NodeMap &mp);
 
   Env &_env;
   Network &_network;
@@ -88,6 +90,7 @@ private:
   CountMap _heldout_map;
   CountMap _precision_map;
   CountMap _validation_map;
+  NodeMap _sampled_nodes;
 
 
   MapVec _communities;
@@ -155,6 +158,7 @@ private:
   Array _training_links;
   uArray _ignore_npairs;
   bool _annealing_phase;
+  bool _save_ranking_file;
 };
 
 inline uint32_t
