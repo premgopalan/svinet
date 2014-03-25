@@ -219,8 +219,6 @@ public:
   void set_dir_exp(const Matrix &u, Matrix &exp);
   void set_dir_exp(uint32_t a, const Matrix &u, Matrix &exp);
 
-  static const unsigned int THRESH = 0.99;
-
 private:
   void init_heldout();
   void load_heldout();
