@@ -54,7 +54,9 @@ public:
   Env(uint32_t N, uint32_t K, bool massive,
       bool sbm, bool batch, bool strat, bool nodelay,
       bool rpair, bool rnode, bool load, string location, 
-      bool hol_load, string hol_location, bool load_test_sets,
+      bool val_load, string val_file_location, 
+      bool test_load, string test_file_location, 
+      bool load_test_sets,
       double hol_ratio,
       bool adamic,
       uint32_t scale,
@@ -97,6 +99,8 @@ public:
   string gamma_location;
   bool load_heldout;
   string load_heldout_fname;
+  bool load_test;
+  string load_test_fname;
   bool create_test_precision_sets;
   bool load_test_sets;
   bool adamic_adar;
@@ -281,7 +285,8 @@ inline
 Env::Env(uint32_t N, uint32_t K, bool massive,
 	 bool sbm, bool batch, bool strat, bool nodelay,
 	 bool rpair, bool rnode, bool load, string location, 
-	 bool hol_load, string hol_location, 
+	 bool val_load, string val_file_location, 
+	 bool test_load, string test_file_location, 
 	 bool load_test_sets_opt, double hol_ratio,
 	 bool adamic,
 	 uint32_t scale,
@@ -342,8 +347,10 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     infer_alpha(alpha),
     model_load(load),
     gamma_location(location),
-    load_heldout(hol_load),
-    load_heldout_fname(hol_location),
+    load_heldout(val_load),
+    load_heldout_fname(val_file_location),
+    load_test(test_load),
+    load_test_fname(test_file_location),
     create_test_precision_sets(false),
     load_test_sets(load_test_sets_opt),
     adamic_adar(adamic),
@@ -603,8 +610,10 @@ Env::Env(uint32_t N, uint32_t K, bool massive,
     plog("sets_mini_batch", sets_mini_batch);
     plog("use_init_communities", use_init_communities);
     plog("load_test_sets", load_test_sets);
-    plog("hol_load", hol_load);
-    plog("hol_location", hol_location);
+    plog("val_load", val_load);
+    plog("val_file_location", val_file_location);
+    plog("test_load", test_load);
+    plog("test_file_location", test_file_location);
     plog("reportfreq", reportfreq);
     plog("eta_type", eta_type);
   }

@@ -74,12 +74,6 @@ LinkSampling::LinkSampling(Env &env, Network &network)
   if (_env.seed)
     gsl_rng_set(_r, _env.seed);
 
-  _hef = fopen(Env::file_str("/heldout-edges.txt").c_str(), "w");
-  if (!_hef)  {
-    printf("cannot open heldout edges file:%s\n",  strerror(errno));
-    exit(-1);
-  }
-  
   if (_env.create_test_precision_sets) {
     _pef = fopen(Env::file_str("/precision-edges.txt").c_str(), "w");
     if (!_pef)  {
@@ -88,25 +82,29 @@ LinkSampling::LinkSampling(Env &env, Network &network)
     }
   }
 
-  if (!_env.single_heldout_set) {
-    _vef = fopen(Env::file_str("/validation-edges.txt").c_str(), "w");
-    if (!_vef)  {
-      printf("cannot open validation edges file:%s\n",  strerror(errno));
-      exit(-1);
-    }
+  _vef = fopen(Env::file_str("/validation-edges.txt").c_str(), "w");
+  if (!_vef)  {
+    printf("cannot open validation edges file:%s\n",  strerror(errno));
+    exit(-1);
+  }
+
+  _tef = fopen(Env::file_str("/test-edges.txt").c_str(), "w");
+  if (!_vef)  {
+    printf("cannot open test edges file:%s\n",  strerror(errno));
+    exit(-1);
   }
 
   if (!_env.load_heldout) {
-    Env::plog("load heldout from file:", false);
-    init_heldout();
+    Env::plog("load validation from file:", false);
+    init_validation();
   } else {
-    Env::plog("load heldout from file:", true);
-    load_heldout();
+    Env::plog("load validation from file:", true);
+    load_validation();
   }
 
-  if (_env.load_test_sets) {
-    Env::plog("load biased and uniform tests from file:", true);
-    load_test_sets();
+  if (_env.load_test) {
+    Env::plog("load test from file:", true);
+    load_test();
   }
 
   if (_env.model_load) {
@@ -127,19 +125,18 @@ LinkSampling::LinkSampling(Env &env, Network &network)
 
   info("+ done Elogpi and Elogbeta\n");
 
-  _hf = fopen(Env::file_str("/heldout.txt").c_str(), "w");
-  if (!_hf)  {
-    printf("cannot open heldout file:%s\n",  strerror(errno));
+  _tf = fopen(Env::file_str("/test.txt").c_str(), "w");
+  if (!_tf)  {
+    printf("cannot open test file:%s\n",  strerror(errno));
     exit(-1);
   }
 
-  if (!_env.single_heldout_set) {
-    _vf = fopen(Env::file_str("/validation.txt").c_str(), "w");
-    if (!_vf)  {
-      printf("cannot open validation file:%s\n",  strerror(errno));
-      exit(-1);
-    }
+  _vf = fopen(Env::file_str("/validation.txt").c_str(), "w");
+  if (!_vf)  {
+    printf("cannot open validation file:%s\n",  strerror(errno));
+    exit(-1);
   }
+
   Env::plog("network ones", _network.ones());
   Env::plog("network singles", _network.singles());
 
@@ -150,7 +147,6 @@ LinkSampling::LinkSampling(Env &env, Network &network)
   }
 
   double a, b, c;
-  heldout_likelihood(a, b, c);
   validation_likelihood(a, b, c);
 
   info("+ link sampling init end\n");
@@ -166,12 +162,12 @@ LinkSampling::~LinkSampling()
 }
 
 void
-LinkSampling::init_heldout()
+LinkSampling::init_validation()
 {
   int s1 = _env.heldout_ratio * _network.ones();
   int s0 = _env.heldout_ratio * (_total_pairs * _zeros_prob);
 
-  set_heldout_sample(s1);
+  set_validation_sample(s1);
   if (_env.create_test_precision_sets) {
     if (_env.nonuniform)
       set_precision_biased_sample(s1);
@@ -179,22 +175,15 @@ LinkSampling::init_heldout()
       set_precision_uniform_sample(s1);
   }
 
-  if (!_env.single_heldout_set)
-    set_validation_sample(s1);
-
   Env::plog("heldout ratio", _env.heldout_ratio);
-  Env::plog("heldout pairs (1s and 0s)", _heldout_map.size());
-  fprintf(_hef, "%s\n", edgelist_s(_heldout_pairs).c_str());
-  fclose(_hef);
+  Env::plog("validation pairs (1s and 0s)", _validation_map.size());
+  fprintf(_vef, "%s\n", edgelist_s(_validation_pairs).c_str());
+  fclose(_vef);
 
   if (_env.create_test_precision_sets) {
     Env::plog("precision pairs (1s and 0s)", _precision_map.size());
     fprintf(_pef, "%s\n", edgelist_s(_precision_pairs).c_str());
     fclose(_pef);
-  }
-  if (!_env.single_heldout_set) {
-    fprintf(_vef, "%s\n", edgelist_s(_validation_pairs).c_str());
-    fclose(_vef);
   }
 }
 
@@ -260,7 +249,7 @@ LinkSampling::set_precision_biased_sample(int s1)
 }
 
 void
-LinkSampling::set_heldout_sample(int s)
+LinkSampling::set_test_sample(int s)
 {
   int c0 = 0;
   int c1 = 0;
@@ -278,13 +267,13 @@ LinkSampling::set_heldout_sample(int s)
 
     if (y == 0 and c0 < p) {
       c0++;
-      _heldout_pairs.push_back(e);
-      _heldout_map[e] = true;
+      _test_pairs.push_back(e);
+      _test_map[e] = true;
     }
     if (y == 1 and c1 < p) {
       c1++;
-      _heldout_pairs.push_back(e);
-      _heldout_map[e] = true;
+      _test_pairs.push_back(e);
+      _test_map[e] = true;
     }
   }
 }
@@ -292,9 +281,6 @@ LinkSampling::set_heldout_sample(int s)
 void
 LinkSampling::set_validation_sample(int s)
 {
-  if (_env.accuracy || _env.single_heldout_set)
-    return;
-
   int c0 = 0;
   int c1 = 0;
   int p = s / 2;
@@ -309,12 +295,12 @@ LinkSampling::set_validation_sample(int s)
     uint32_t b = e.second;
     yval_t y = get_y(a,b);
 
-    if (y == 0 and c0 < p) {
+    if (y == 0 && c0 < p) {
       c0++;
       _validation_pairs.push_back(e);
       _validation_map[e] = true;
     }
-    if (y == 1 and c1 < p) {
+    if (y == 1 && c1 < p) {
       c1++;
       _validation_pairs.push_back(e);
       _validation_map[e] = true;
@@ -358,78 +344,6 @@ LinkSampling::set_precision_uniform_sample(int s)
   Env::plog("heldout zeros:", p);
   Env::plog("precision ones:", p);
   Env::plog("precision zeros:", q);
-}
-
-void
-LinkSampling::load_test_sets()
-{
-  uint32_t n = 0;
-  uint32_t a, b;
-
-  const IDMap &id2seq = _network.id2seq();
-  FILE *f = fopen("uniform-heldout-pairs.txt", "r");
-  while (!feof(f)) {
-    if (fscanf(f, "%d\t%d\n", &a, &b) < 0) {
-      fprintf(stderr, "error: cannot read uniform heldout test file\n");
-      exit(-1);
-    }
-    
-    IDMap::const_iterator i1 = id2seq.find(a);
-    IDMap::const_iterator i2 = id2seq.find(b);
-    
-    if ((i1 == id2seq.end()) || (i2 == id2seq.end())) {
-      fprintf(stderr, "error: id %d or id %d not found in original network\n", 
-	      a, b);
-      exit(-1);
-    }
-    Edge e(i1->second,i2->second);
-    Network::order_edge(_env, e);
-    _uniform_pairs.push_back(e);
-    _uniform_map[e] = true;
-    ++n;
-  }
-  Env::plog("loaded uniform test pairs:", n);
-
-  FILE *uef = fopen(Env::file_str("/uniform-test-pairs.txt").c_str(), "w");
-  if (!uef)  {
-    printf("cannot open uniform pairs file:%s\n",  strerror(errno));
-    exit(-1);
-  }
-  fprintf(uef, "%s\n", edgelist_s(_uniform_pairs).c_str());
-  fclose(uef);
-  fclose(f);
- 
-  n = 0;
-  f = fopen("biased-heldout-pairs.txt", "r");
-  while (!feof(f)) {
-    if (fscanf(f, "%d\t%d\n", &a, &b) < 0) {
-      fprintf(stderr, "error: cannot read biased heldout test file\n");
-      exit(-1);
-    }
-    
-    IDMap::const_iterator i1 = id2seq.find(a);
-    IDMap::const_iterator i2 = id2seq.find(b);
-    
-    if ((i1 == id2seq.end()) || (i2 == id2seq.end())) {
-      fprintf(stderr, "error: id %d or id %d not found in original network\n", 
-	      a, b);
-      exit(-1);
-    }
-    Edge e(i1->second,i2->second);
-    Network::order_edge(_env, e);
-    _biased_pairs.push_back(e);
-    _biased_map[e] = true;
-    ++n;
-  }
-  FILE *bef = fopen(Env::file_str("/biased-test-pairs.txt").c_str(), "w");
-  if (!bef)  {
-    printf("cannot open biased pairs file:%s\n",  strerror(errno));
-    exit(-1);
-  }
-  Env::plog("loaded biased test pairs:", n);
-  fprintf(bef, "%s\n", edgelist_s(_biased_pairs).c_str());
-  fclose(bef);
-  fclose(f);
 }
 
 
@@ -695,8 +609,8 @@ LinkSampling::infer()
       if (!_env.accuracy) {
 	Edge e(p,q);
 	Network::order_edge(_env,e);
-	const SampleMap::const_iterator u = _heldout_map.find(e);
-	assert (u == _heldout_map.end());
+	const SampleMap::const_iterator u = _validation_map.find(e);
+	assert (u == _validation_map.end());
       }
       
       links = 0;
@@ -863,7 +777,9 @@ LinkSampling::infer()
     
     if (_iter % _env.reportfreq == 0) {
       double a, b, c;
-      heldout_likelihood(a, b, c);
+      validation_likelihood(a, b, c);
+      test_likelihood(_test_map, _tf);
+
       if (_env.create_test_precision_sets)
 	compute_test_likelihood();
       log_communities();
@@ -1048,15 +964,15 @@ LinkSampling::gml(uint32_t cid, const vector<uint32_t> &ids)
 }
 
 void
-LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
+LinkSampling::validation_likelihood(double &a, double &a0, double &a1)
 {
   if (_env.accuracy)
     return;
   uint32_t k = 0, kzeros = 0, kones = 0;
   double s = .0, szeros = 0, sones = 0;
-  uint32_t sz = _heldout_map.size();
-  for (SampleMap::const_iterator i = _heldout_map.begin();
-       i != _heldout_map.end(); ++i) {
+  uint32_t sz = _validation_map.size();
+  for (SampleMap::const_iterator i = _validation_map.begin();
+       i != _validation_map.end(); ++i) {
     const Edge &e = i->first;
     uint32_t p = e.first;
     uint32_t q = e.second;
@@ -1077,13 +993,13 @@ LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
 
   double nshol = (_zeros_prob * (szeros / kzeros)) + 
     (_ones_prob * (sones / kones));
-  fprintf(_hf, "%d\t%d\t%.9f\t%d\t%.9f\t%d\t%.9f\t%d\t%.9f\t%.9f\t%.9f\n",
+  fprintf(_vf, "%d\t%d\t%.9f\t%d\t%.9f\t%d\t%.9f\t%d\t%.9f\t%.9f\t%.9f\n",
 	  _iter, duration(), s / k, k,
 	  szeros / kzeros, kzeros, sones / kones, kones,
 	  _zeros_prob * (szeros / kzeros),
 	  _ones_prob * (sones / kones),
 	  nshol);
-  fflush(_hf);
+  fflush(_vf);
 
   a = nshol;
 
@@ -1100,12 +1016,8 @@ LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
       _nh = 0;
 
     if (a > _max_h) {
-      double av0, av1, av2;
-      validation_likelihood(av0, av1, av2);
-      
       double at0 = 0;
       _max_h = a;
-      _max_v = av0;
       _max_t = at0;
     }
     
@@ -1116,9 +1028,9 @@ LinkSampling::heldout_likelihood(double &a, double &a0, double &a1)
   }
   _prev_h = nshol;
   FILE *f = fopen(Env::file_str("/max.txt").c_str(), "w");
-  fprintf(f, "%d\t%d\t%.5f\t%.5f\t%.5f\t%.5f\t%d\n", 
+  fprintf(f, "%d\t%d\t%.5f\t%.5f\t%.5f\t%d\n", 
 	  _iter, duration(), 
-	  a, _max_t, _max_h, _max_v, why);
+	  a, _max_t, _max_h, why);
   fclose(f);
 
   if (_annealing_phase && stop) {
@@ -1160,6 +1072,77 @@ LinkSampling::compute_test_likelihood()
   uniform_auc();
 }
 
+void
+LinkSampling::load_test_sets()
+{
+  uint32_t n = 0;
+  uint32_t a, b;
+
+  const IDMap &id2seq = _network.id2seq();
+  FILE *f = fopen("uniform-heldout-pairs.txt", "r");
+  while (!feof(f)) {
+    if (fscanf(f, "%d\t%d\n", &a, &b) < 0) {
+      fprintf(stderr, "error: cannot read uniform heldout test file\n");
+      exit(-1);
+    }
+    
+    IDMap::const_iterator i1 = id2seq.find(a);
+    IDMap::const_iterator i2 = id2seq.find(b);
+    
+    if ((i1 == id2seq.end()) || (i2 == id2seq.end())) {
+      fprintf(stderr, "error: id %d or id %d not found in original network\n", 
+	      a, b);
+      exit(-1);
+    }
+    Edge e(i1->second,i2->second);
+    Network::order_edge(_env, e);
+    _uniform_pairs.push_back(e);
+    _uniform_map[e] = true;
+    ++n;
+  }
+  Env::plog("loaded uniform test pairs:", n);
+
+  FILE *uef = fopen(Env::file_str("/uniform-test-pairs.txt").c_str(), "w");
+  if (!uef)  {
+    printf("cannot open uniform pairs file:%s\n",  strerror(errno));
+    exit(-1);
+  }
+  fprintf(uef, "%s\n", edgelist_s(_uniform_pairs).c_str());
+  fclose(uef);
+  fclose(f);
+ 
+  n = 0;
+  f = fopen("biased-heldout-pairs.txt", "r");
+  while (!feof(f)) {
+    if (fscanf(f, "%d\t%d\n", &a, &b) < 0) {
+      fprintf(stderr, "error: cannot read biased heldout test file\n");
+      exit(-1);
+    }
+    
+    IDMap::const_iterator i1 = id2seq.find(a);
+    IDMap::const_iterator i2 = id2seq.find(b);
+    
+    if ((i1 == id2seq.end()) || (i2 == id2seq.end())) {
+      fprintf(stderr, "error: id %d or id %d not found in original network\n", 
+	      a, b);
+      exit(-1);
+    }
+    Edge e(i1->second,i2->second);
+    Network::order_edge(_env, e);
+    _biased_pairs.push_back(e);
+    _biased_map[e] = true;
+    ++n;
+  }
+  FILE *bef = fopen(Env::file_str("/biased-test-pairs.txt").c_str(), "w");
+  if (!bef)  {
+    printf("cannot open biased pairs file:%s\n",  strerror(errno));
+    exit(-1);
+  }
+  Env::plog("loaded biased test pairs:", n);
+  fprintf(bef, "%s\n", edgelist_s(_biased_pairs).c_str());
+  fclose(bef);
+  fclose(f);
+}
 
 void
 LinkSampling::test_likelihood(const SampleMap &m, FILE *outf)
@@ -1280,45 +1263,6 @@ LinkSampling::precision_likelihood()
   auc();
 }
 
-void
-LinkSampling::validation_likelihood(double &av, double &av0, double &av1) const
-{
-  if (_env.accuracy || _env.single_heldout_set)
-    return;
-
-  uint32_t k = 0, kzeros = 0, kones = 0;
-  double s = .0, szeros = 0, sones = 0;
-  for (SampleMap::const_iterator i = _validation_map.begin();
-       i != _validation_map.end(); ++i) {
-    const Edge &e = i->first;
-    uint32_t p = e.first;
-    uint32_t q = e.second;
-    assert (p != q);
-
-    yval_t y = _network.y(p,q);
-    double u = edge_likelihood(p,q,y);
-    s += u;
-    k += 1;
-    if (y) {
-      sones += u;
-      kones++;
-    } else {
-      szeros += u;
-      kzeros++;
-    }
-    debug("edge likelihood for (%d,%d) is %f\n", p,q,u);
-  }
-  fprintf(_vf, "%d\t%d\t%.5f\t%d\t%.5f\t%d\t%.5f\t%d\n",
-	  _iter, duration(), s / k, k,
-	  szeros / kzeros, kzeros, sones / kones, kones);
-  fflush(_vf);
-
-  av = s / k;
-  av0 = szeros / kzeros;
-  av1 = sones / kones;
-}
-
-
 int
 LinkSampling::load_model()
 {
@@ -1435,9 +1379,8 @@ LinkSampling::get_Epi(uint32_t n, Array &Epi)
     epid[k] = gd[n][k] / s;
 }
 
-
 void
-LinkSampling::load_heldout()
+LinkSampling::load_validation()
 {
   uint32_t n = 0;
   uint32_t a, b;
@@ -1445,7 +1388,7 @@ LinkSampling::load_heldout()
   FILE *f = fopen(_env.load_heldout_fname.c_str(), "r");
   while (!feof(f)) {
     if (fscanf(f, "%d\t%d\n", &a, &b) < 0) {
-      lerr("error: cannot read heldout file %s\n", 
+      lerr("error: cannot read test validation file %s\n", 
 	   _env.load_heldout_fname.c_str());
       exit(-1);
     }
@@ -1460,15 +1403,51 @@ LinkSampling::load_heldout()
     }
     Edge e(i1->second,i2->second);
     Network::order_edge(_env, e);
-    _heldout_pairs.push_back(e);
-    _heldout_map[e] = true;
+    _validation_pairs.push_back(e);
+    _validation_map[e] = true;
     ++n;
   }
-  Env::plog("link sampling: loaded heldout pairs:", n);
-  fprintf(_hef, "%s\n", edgelist_s(_heldout_pairs).c_str());
-  fclose(_hef);
+  Env::plog("link sampling: loaded validation heldout pairs:", n);
+  fprintf(_vef, "%s\n", edgelist_s(_validation_pairs).c_str());
+  fclose(_vef);
   fclose(f);
 }
+
+void
+LinkSampling::load_test()
+{
+  uint32_t n = 0;
+  uint32_t a, b;
+  const IDMap &id2seq = _network.id2seq();
+  FILE *f = fopen(_env.load_test_fname.c_str(), "r");
+  while (!feof(f)) {
+    if (fscanf(f, "%d\t%d\n", &a, &b) < 0) {
+      lerr("error: cannot read test test file %s\n", 
+	   _env.load_test_fname.c_str());
+      exit(-1);
+    }
+    
+    IDMap::const_iterator i1 = id2seq.find(a);
+    IDMap::const_iterator i2 = id2seq.find(b);
+    
+    if ((i1 == id2seq.end()) || (i2 == id2seq.end())) {
+      lerr("error: id %d or id %d not found in original network\n", 
+	   a, b);
+      exit(-1);
+    }
+    Edge e(i1->second,i2->second);
+    Network::order_edge(_env, e);
+    _test_pairs.push_back(e);
+    _test_map[e] = true;
+    ++n;
+  }
+  Env::plog("link sampling: loaded test heldout pairs:", n);
+  fprintf(_tef, "%s\n", edgelist_s(_test_pairs).c_str());
+  fclose(_tef);
+  fclose(f);
+}
+
+
 
 void
 LinkSampling::write_groups()

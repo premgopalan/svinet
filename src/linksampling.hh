@@ -30,14 +30,16 @@ public:
   static void set_dir_exp(uint32_t a, const Matrix &u, Matrix &exp);
 
 private:
-  void init_heldout();
-  void load_heldout();
+  void init_validation();
+  void load_validation();
+  void load_test();
   void write_groups();
 
-  void set_heldout_sample(int s1);
+  void set_test_sample(int s1);
+  void set_validation_sample(int sz);
+
   void set_precision_biased_sample(int s1);
   void set_precision_uniform_sample(int s1);
-  void set_validation_sample(int sz);
 
   void write_communities(MapVec &communities, string name);
   void auc();
@@ -50,9 +52,8 @@ private:
   void compute_mean_indicators();
   void clear();
 
-  void heldout_likelihood(double &a, double &a0, double &a1);
+  void validation_likelihood(double &a, double &a0, double &a1);
   void precision_likelihood();
-  void validation_likelihood(double &a, double &a0, double &a1) const;
 
   int load_model();
   void load_test_sets();
@@ -86,9 +87,11 @@ private:
   Network &_network;
 
   SampleMap _sample_map;
-  SampleMap _heldout_map;
   SampleMap _precision_map;
+
   SampleMap _validation_map;
+  SampleMap _test_map;
+
   SampleMap _uniform_map;
   SampleMap _biased_map;
 
@@ -104,7 +107,7 @@ private:
 
   double _ones_prob;
   double _zeros_prob;
-  EdgeList _heldout_pairs;
+  EdgeList _test_pairs;
   EdgeList _precision_pairs;
   EdgeList _validation_pairs;
   EdgeList _uniform_pairs;
@@ -296,15 +299,13 @@ LinkSampling::edge_ok(const Edge &e) const
   if (e.first == e.second)
     return false;
   
-  const SampleMap::const_iterator u = _heldout_map.find(e);
-  if (u != _heldout_map.end())
+  const SampleMap::const_iterator u = _test_map.find(e);
+  if (u != _test_map.end())
     return false;
   
-  if (!_env.single_heldout_set) {
-    const SampleMap::const_iterator w = _validation_map.find(e);
-    if (w != _validation_map.end())
-      return false;
-  }
+  const SampleMap::const_iterator w = _validation_map.find(e);
+  if (w != _validation_map.end())
+    return false;
 
   if (_env.create_test_precision_sets) {
     const SampleMap::const_iterator w = _precision_map.find(e);

@@ -62,8 +62,10 @@ main(int argc, char **argv)
   bool link_sampling = false;
   bool nodelay = true;
   bool load = false; 
-  bool hol_load = false;
-  string hol_location = "";
+  bool val_load = false;
+  string val_file_location = "";
+  bool test_load = false;
+  string test_file_location = "";
   bool adamic_adar = false; 
   string location = "";
   uint32_t scale = 1;
@@ -162,9 +164,12 @@ main(int argc, char **argv)
     } else if (strcmp(argv[i], "-load") == 0) {
       load = true;
       location = string(argv[++i]);
-    } else if (strcmp(argv[i], "-load-heldout") == 0) {
-      hol_load = true;
-      hol_location = string(argv[++i]);
+    } else if (strcmp(argv[i], "-load-validation") == 0) {
+      val_load = true;
+      val_file_location = string(argv[++i]);
+    } else if (strcmp(argv[i], "-load-test") == 0) {
+      test_load = true;
+      test_file_location = string(argv[++i]);
     } else if (strcmp(argv[i], "-adamic-adar") == 0) {
       adamic_adar = true;
     } else if (strcmp(argv[i], "-scale") == 0) {
@@ -241,7 +246,9 @@ main(int argc, char **argv)
   Env env(n, k, massive, single, batch, stratified, 
 	  nodelay, rpair, rnode, 
 	  load, location, 
-	  hol_load, hol_location, load_test_sets_opt,
+	  val_load, val_file_location, 
+	  test_load, test_file_location,
+	  load_test_sets_opt,
 	  hol_ratio,
 	  adamic_adar,
 	  scale, disjoint,
@@ -383,6 +390,8 @@ usage()
 	  "\t-stratified\tuse stratified sampling\n\t * use with rpair or rnode options\n\n"
 	  "\t-rnode\t\tinference using random node sampling\n\n"
 	  "\t-rpair\t\tinference using random pair sampling\n\n"
+	  "\t-load-validation <fname>\t\tuse the pairs in the file as the validation set for convergence\n\n"
+	  "\t-load-test <fname>\t\tuse the pairs in the file as the test set\n\n"
 	  "\t-label\t\ttag output directory\n\n"
 	  "\t-link-sampling\tinference using link sampling \n\n"
 	  "\t-infset\t\tinference using informative set sampling\n\n"
