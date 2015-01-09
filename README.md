@@ -20,12 +20,8 @@ On Linux/Unix run
 
  ./configure
  make; make install
-
-On Mac OS, the location of the required gsl, gslblas and pthread
-libraries may need to be specified:
-
- ./configure LDFLAGS="-L/opt/local/lib" CPPFLAGS="-I/opt/local/include"
- make; make install
+ 
+**SVINET has not been tested on Mac. Please run on Linux.**
 
 The binary 'svinet' will be installed in /usr/local/bin unless a
 different prefix is provided to configure. (See INSTALL.)
