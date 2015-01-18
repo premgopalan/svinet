@@ -16,6 +16,7 @@
 #include <iostream>
 #include <sstream>
 #include <signal.h>
+#include <stdint.h>
 
 string Env::prefix = "";
 Logger::Level Env::level = Logger::DEBUG;
@@ -221,7 +222,7 @@ main(int argc, char **argv)
     } else if (strcmp(argv[i], "-logl") == 0) {
       logl = true;
     } else if (strcmp(argv[i], "-max-iterations") == 0) {
-      max_iterations = atoi(argv[++i]);
+      sscanf(argv[++i], "%"SCNu32, &max_iterations);
     } else if (strcmp(argv[i], "-no-stop") == 0) {
       use_validation_stop = false;
     } else if (strcmp(argv[i], "-seed") == 0) {
