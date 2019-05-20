@@ -99,11 +99,11 @@ svinet -file network.txt -n 17903 -k 20 -preprocess
 
 - *move the generated "informative set" file to the location where you will run svinet*
 
-mv n17903-k20-mmsb-massive/neighbors.bin .
+mv n17903-k20-mmsb-infset/neighbors.bin .
 
 - *run inference*
 
-svinet -file network.txt -n 17903 -k 20 -massive
+svinet -file network.txt -n 17903 -k 20 -infset
 
 Saving model state
 ------------------
