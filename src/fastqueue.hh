@@ -46,7 +46,8 @@ public:
   double nontop_k_weight() const;
   const KVList &list() const { return _list; }
   
-  static const double THRESH = 0.8;
+  //static const double THRESH = 0.8; 
+  constexpr static double THRESH = 0.8;
   static void static_initialize(uint32_t k, double alpha);
   static uint32_t K() { return _K; }
 
